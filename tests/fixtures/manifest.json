@@ -1,0 +1,141 @@
+[
+  {
+    "id": "clarified-sain",
+    "file": "pdf/clarified-sain.pdf",
+    "title": "Bulletin correct (cadre, SYNTEC)",
+    "expect": {
+      "severityMax": "info",
+      "notes": "Aucune anomalie attendue."
+    },
+    "computed": {
+      "gross": 3488.46,
+      "totalSal": 748.46,
+      "netImposable": 2867.18,
+      "netAvantImpot": 2740,
+      "pas": 108.95,
+      "netPaye": 2631.05
+    }
+  },
+  {
+    "id": "clarified-taux-vieillesse",
+    "file": "pdf/clarified-taux-vieillesse.pdf",
+    "title": "Taux vieillesse plafonnée salariale erroné (7,30 % au lieu de 6,90 %)",
+    "expect": {
+      "findings": [
+        {
+          "code": "VIEILLESSE_PLAFONNEE",
+          "type": "TAUX_INCORRECT",
+          "side": "employee"
+        }
+      ]
+    },
+    "computed": {
+      "gross": 3488.46,
+      "totalSal": 762.42,
+      "netImposable": 2853.22,
+      "netAvantImpot": 2726.04,
+      "pas": 108.42,
+      "netPaye": 2617.62
+    }
+  },
+  {
+    "id": "clarified-chomage-405",
+    "file": "pdf/clarified-chomage-405.pdf",
+    "title": "Assurance chômage patronale à 4,05 % (ancien taux)",
+    "expect": {
+      "findings": [
+        {
+          "code": "ASSURANCE_CHOMAGE",
+          "type": "TAUX_INCORRECT",
+          "side": "employer"
+        }
+      ]
+    },
+    "computed": {
+      "gross": 3488.46,
+      "totalSal": 748.46,
+      "netImposable": 2867.18,
+      "netAvantImpot": 2740,
+      "pas": 108.95,
+      "netPaye": 2631.05
+    }
+  },
+  {
+    "id": "clarified-brut-incoherent",
+    "file": "pdf/clarified-brut-incoherent.pdf",
+    "title": "Salaire brut affiché incohérent avec le détail",
+    "expect": {
+      "findings": [
+        {
+          "type": "BRUT_INCOHERENT"
+        }
+      ]
+    },
+    "computed": {
+      "gross": 3608.46,
+      "totalSal": 748.46,
+      "netImposable": 2867.18,
+      "netAvantImpot": 2740,
+      "pas": 108.95,
+      "netPaye": 2631.05
+    }
+  },
+  {
+    "id": "clarified-calcul-ligne",
+    "file": "pdf/clarified-calcul-ligne.pdf",
+    "title": "Montant d’une ligne ≠ base × taux (CEG T1)",
+    "expect": {
+      "findings": [
+        {
+          "code": "CEG_T1",
+          "type": "CALCUL_INCOHERENT"
+        }
+      ]
+    },
+    "computed": {
+      "gross": 3488.46,
+      "totalSal": 757.46,
+      "netImposable": 2858.18,
+      "netAvantImpot": 2731,
+      "pas": 108.61,
+      "netPaye": 2622.39
+    }
+  },
+  {
+    "id": "clarified-cotisation-manquante",
+    "file": "pdf/clarified-cotisation-manquante.pdf",
+    "title": "Cotisation APEC absente pour un cadre",
+    "expect": {
+      "findings": [
+        {
+          "code": "APEC",
+          "type": "COTISATION_MANQUANTE"
+        }
+      ]
+    },
+    "computed": {
+      "gross": 3488.46,
+      "totalSal": 747.62,
+      "netImposable": 2868.02,
+      "netAvantImpot": 2740.84,
+      "pas": 108.98,
+      "netPaye": 2631.86
+    }
+  },
+  {
+    "id": "clarified-non-cadre",
+    "file": "pdf/clarified-non-cadre.pdf",
+    "title": "Bulletin correct (non-cadre, SMIC+)",
+    "expect": {
+      "severityMax": "info"
+    },
+    "computed": {
+      "gross": 2100,
+      "totalSal": 458.27,
+      "netImposable": 1729.35,
+      "netAvantImpot": 1641.73,
+      "pas": 65.72,
+      "netPaye": 1576.01
+    }
+  }
+]

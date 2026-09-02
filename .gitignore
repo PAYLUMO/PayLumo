@@ -1,0 +1,41 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# build
+dist
+dist-ssr
+*.local
+dev-dist
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+
+# env / deploy
+.env
+.env.local
+.env.*.local
+.vercel
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# tests
+coverage
+
+# Capacitor (généré plus tard)
+/android
+/ios
+
+# Bulletins de paie réels — ne JAMAIS versionner
+/samples/*
+!/samples/.gitkeep
+!/samples/README.md

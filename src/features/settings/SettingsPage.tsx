@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react';
+import { CreditCard } from 'lucide-react';
+import { Card, SectionTitle, Button } from '@/components/ui';
+import { useTheme } from '@/app/theme';
+import { PASS, PMSS, REFERENCE_YEAR, SMIC_2026 } from '@shared/data/params';
+import { formatEuro } from '@shared/lib/money';
+import { clearAllAnalyses, listAnalyses } from '@/lib/storage';
+
+const PRICE = 0.99;
+
+export function SettingsPage() {
+  const { mode, setMode } = useTheme();
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    listAnalyses().then((a) => setCount(a.length));
+  }, []);
+
+  const wipe = async () => {
+    if (!confirm('Effacer toutes les analyses enregistrées sur cet appareil ? Action irréversible.')) return;
+    await clearAllAnalyses();
+    setCount(0);
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionTitle>Réglages</SectionTitle>
+
+      <Card>
+        <h3 className="font-semibold">Apparence</h3>
+        <div className="mt-3 flex gap-2">
+          {(['light', 'dark', 'system'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={
+                'rounded-lg border px-3 py-1.5 text-sm ' +
+                (mode === m
+                  ? 'border-brand-500 bg-brand-100 text-brand-800 dark:bg-brand-900/50 dark:text-brand-200'
+                  : 'hover:surface-2')
+              }
+            >
+              {m === 'light' ? 'Clair' : m === 'dark' ? 'Sombre' : 'Système'}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="flex items-center gap-1.5 font-semibold">
+          <CreditCard size={16} className="text-brand-600 dark:text-brand-400" />
+          Paiement
+        </h3>
+        <p className="mt-1 text-sm text-muted">
+          {formatEuro(PRICE)} par analyse, paiement unique — pas d’abonnement, pas de compte.
+          Transactions gérées par <strong className="text-[rgb(var(--text))]">Stripe</strong> ;
+          PayLumo ne voit jamais votre numéro de carte.
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          <strong className="text-[rgb(var(--text))]">Remboursement.</strong> Si votre bulletin
+          n’a pas pu être lu (scan, format non reconnu), le paiement est automatiquement remboursé.
+        </p>
+      </Card>
+
+      <Card>
+        <h3 className="font-semibold">Référentiel {REFERENCE_YEAR}</h3>
+        <dl className="mt-2 divide-y divide-[rgb(var(--border))] text-sm">
+          <div className="flex justify-between py-1.5">
+            <dt className="text-muted">Plafond mensuel Sécurité sociale</dt>
+            <dd className="font-medium">{formatEuro(PMSS)}</dd>
+          </div>
+          <div className="flex justify-between py-1.5">
+            <dt className="text-muted">Plafond annuel (PASS)</dt>
+            <dd className="font-medium">{formatEuro(PASS)}</dd>
+          </div>
+          <div className="flex justify-between py-1.5">
+            <dt className="text-muted">SMIC horaire</dt>
+            <dd className="font-medium">
+              {formatEuro(SMIC_2026[0].horaire)} puis {formatEuro(SMIC_2026[1].horaire)} (1er juin)
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-2 text-xs text-muted">
+          Sources : arrêté du 22 décembre 2025, barèmes URSSAF / BOSS / Agirc-Arrco 2026. Seule
+          l’année 2026 est disponible pour l’instant.
+        </p>
+      </Card>
+
+      <Card>
+        <h3 className="font-semibold">Données</h3>
+        <p className="mt-1 text-sm text-muted">
+          {count == null
+            ? 'Chargement…'
+            : `${count} analyse${count > 1 ? 's' : ''} stockée${count > 1 ? 's' : ''} dans ce navigateur (IndexedDB). Le PDF envoyé pour analyse n’est pas conservé par le serveur.`}
+        </p>
+        <Button variant="danger" size="sm" className="mt-3" onClick={wipe} disabled={!count}>
+          Effacer toutes mes analyses
+        </Button>
+      </Card>
+
+      <Card className="surface-2 text-xs text-muted">
+        <p className="font-semibold text-[rgb(var(--text))]">Avertissement</p>
+        <p className="mt-1">
+          PayLumo fournit une analyse <strong>indicative</strong> à partir de barèmes publics. Elle
+          ne constitue pas un conseil juridique, comptable ou fiscal, et peut comporter des erreurs
+          (notamment si une ligne du bulletin a été mal lue). En cas de doute, adressez-vous à votre
+          service paie, à un expert-comptable, à l’URSSAF ou à l’inspection du travail.
+        </p>
+      </Card>
+    </div>
+  );
+}
