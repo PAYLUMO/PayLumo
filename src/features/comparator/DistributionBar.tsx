@@ -15,7 +15,7 @@ export function DistributionBar({ estimate, salary }: { estimate: Estimate; sala
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-        Salaires du secteur privé · INSEE 2023
+        Salaires du privé, net avant impôt · INSEE 2023
       </p>
       <div className="relative mt-7 h-3 rounded-full surface-2">
         {/* zone D1–D9 */}

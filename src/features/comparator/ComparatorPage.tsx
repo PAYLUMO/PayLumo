@@ -3,22 +3,19 @@ import { Scale } from 'lucide-react';
 import { Card, SectionTitle } from '@/components/ui';
 import {
   AGE_BANDS,
-  CSP_LABEL,
   INSEE_YEAR,
-  METIERS,
+  METIERS_SORTED,
   METIER_BY_ID,
   REGIONS,
   REGION_BY_CODE,
   SEXE_GAP_COMPARABLE,
   SEXE_GAP_EQTP,
-  type Csp,
   type Sexe,
 } from '@/data/insee';
 import { formatEuro } from '@shared/lib/money';
 import { estimateMedian, positionOf } from './estimate';
 import { DistributionBar } from './DistributionBar';
 
-const CSP_ORDER: Csp[] = ['cadre', 'intermediaire', 'employe', 'ouvrier'];
 const fieldCx =
   'mt-1 w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm focus:outline focus:outline-2 focus:outline-brand-500';
 
@@ -49,14 +46,14 @@ export function ComparatorPage() {
           Comparateur de salaire
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Situez votre salaire net par rapport aux statistiques INSEE du secteur privé. Gratuit,
-          calculé sur votre appareil — aucune donnée n’est envoyée.
+          Situez votre salaire net avant impôt par rapport aux statistiques INSEE du secteur privé.
+          Gratuit, calculé sur votre appareil — aucune donnée n’est envoyée.
         </p>
       </div>
 
       <Card className="space-y-3">
         <label className="block text-sm font-medium">
-          Votre salaire net mensuel
+          Votre salaire net mensuel avant impôt
           <div className="relative mt-1">
             <input
               inputMode="decimal"
@@ -67,20 +64,20 @@ export function ComparatorPage() {
             />
             <span className="pointer-events-none absolute right-3 top-2 text-sm text-muted">€</span>
           </div>
+          <span className="mt-1 block text-xs font-normal text-muted">
+            La ligne « net à payer avant impôt » de votre fiche de paie (avant prélèvement à la
+            source). C’est la base utilisée par l’INSEE.
+          </span>
         </label>
 
         <label className="block text-sm font-medium">
           Métier
           <select value={metierId} onChange={(e) => setMetierId(e.target.value)} className={fieldCx}>
             <option value="">— choisir —</option>
-            {CSP_ORDER.map((csp) => (
-              <optgroup key={csp} label={CSP_LABEL[csp]}>
-                {METIERS.filter((m) => m.csp === csp).map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </optgroup>
+            {METIERS_SORTED.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
             ))}
           </select>
         </label>
@@ -154,8 +151,8 @@ export function ComparatorPage() {
                 (<strong>{age.label.toLowerCase()}</strong>)
               </>
             ) : null}{' '}
-            en <strong>{region.label}</strong>, le salaire net mensuel médian serait d’environ{' '}
-            <strong>{formatEuro(estimate.median, 0)}</strong>
+            en <strong>{region.label}</strong>, le salaire net mensuel avant impôt médian serait
+            d’environ <strong>{formatEuro(estimate.median, 0)}</strong>
             {' '}
             <span className="text-muted">
               (fourchette {formatEuro(estimate.low, 0)} – {formatEuro(estimate.high, 0)})
@@ -200,12 +197,17 @@ export function ComparatorPage() {
 
       <Card className="surface-2 space-y-2 text-xs text-muted">
         <p>
+          <strong className="text-[rgb(var(--text))]">Salaire net avant impôt.</strong> Comme
+          l’INSEE, on raisonne en net de cotisations, CSG et CRDS mais <strong>avant</strong> impôt
+          sur le revenu — la ligne « net à payer avant impôt » de la fiche de paie.
+        </p>
+        <p>
           <strong className="text-[rgb(var(--text))]">Comment c’est calculé.</strong> Les repères
           nationaux (déciles, médiane, moyennes par catégorie et par âge) sont des{' '}
-          <strong>données INSEE {INSEE_YEAR}</strong> (secteur privé, net mensuel en équivalent temps
-          plein). La médiane affichée pour votre profil est une <strong>estimation PayLumo</strong> :
-          l’INSEE ne publie pas de médiane libre métier par métier, on combine donc les statistiques
-          par catégorie, région, âge et sexe. Elle peut s’écarter de la réalité de votre secteur.
+          <strong>données INSEE {INSEE_YEAR}</strong>. La médiane affichée pour votre profil est une{' '}
+          <strong>estimation PayLumo</strong> : l’INSEE ne publie pas de médiane libre métier par
+          métier, on combine donc les statistiques par type de poste, région, âge et sexe. Valeurs
+          prudentes, à prendre comme un ordre de grandeur.
         </p>
         <p>
           Ce n’est ni une valeur de marché individuelle, ni un droit à rémunération : les écarts
