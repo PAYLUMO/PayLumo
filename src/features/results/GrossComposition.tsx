@@ -53,8 +53,8 @@ export function GrossComposition({ payslip }: { payslip: Payslip }) {
 
       {Math.abs(sum - payslip.gross.value) > 0.02 && (
         <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
-          Écart de {formatEuro(Math.abs(sum - payslip.gross.value))} avec le brut affiché
-          ({formatEuro(payslip.gross.value)}) — voir les anomalies.
+          Différence de {formatEuro(Math.abs(sum - payslip.gross.value))} avec le brut affiché
+          ({formatEuro(payslip.gross.value)}) — détaillée plus haut.
         </p>
       )}
     </Card>

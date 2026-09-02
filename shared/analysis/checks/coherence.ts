@@ -3,7 +3,7 @@ import type { Finding } from '../findings';
 import type { AnalysisContext } from '../context';
 
 const whatToDo =
-  'Que faire : demandez à votre service paie le détail du calcul. Conservez le bulletin ; en cas d’erreur confirmée, une régularisation doit apparaître sur une paie suivante.';
+  'Demandez à votre service paie le détail du calcul. En cas d’écart confirmé, une régularisation apparaîtra simplement sur une paie suivante.';
 
 /** Somme des éléments de rémunération = salaire brut affiché ? */
 export function checkGrossComposition(ctx: AnalysisContext): Finding[] {

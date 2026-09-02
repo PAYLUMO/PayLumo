@@ -102,10 +102,11 @@ export function SettingsPage() {
       <Card className="surface-2 text-xs text-muted">
         <p className="font-semibold text-[rgb(var(--text))]">Avertissement</p>
         <p className="mt-1">
-          PayLumo fournit une analyse <strong>indicative</strong> à partir de barèmes publics. Elle
-          ne constitue pas un conseil juridique, comptable ou fiscal, et peut comporter des erreurs
-          (notamment si une ligne du bulletin a été mal lue). En cas de doute, adressez-vous à votre
-          service paie, à un expert-comptable, à l’URSSAF ou à l’inspection du travail.
+          PayLumo fournit une analyse <strong>indicative</strong> à partir de barèmes publics, pour
+          vous aider à comprendre votre fiche de paie. Elle ne constitue pas un conseil juridique,
+          comptable ou fiscal et peut comporter des imprécisions (notamment si une ligne a été mal
+          lue). Pour toute précision, votre service paie ou un expert-comptable est le bon
+          interlocuteur.
         </p>
       </Card>
     </div>

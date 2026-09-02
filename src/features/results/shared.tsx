@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Info, Search } from 'lucide-react';
 import { Badge, cx } from '@/components/ui';
 import type { Severity } from '@shared/analysis/findings';
 
 export function SeverityIcon({ severity, size = 16 }: { severity: Severity; size?: number }) {
-  if (severity === 'erreur') return <XCircle size={size} className="text-red-600 dark:text-red-400" />;
+  if (severity === 'erreur')
+    return <CircleAlert size={size} className="text-amber-600 dark:text-amber-400" />;
   if (severity === 'avertissement')
-    return <AlertTriangle size={size} className="text-amber-600 dark:text-amber-400" />;
-  return <Info size={size} className="text-sky-600 dark:text-sky-400" />;
+    return <Search size={size} className="text-sky-600 dark:text-sky-400" />;
+  return <Info size={size} className="text-muted" />;
 }
 
 export function OkIcon({ size = 16 }: { size?: number }) {
@@ -15,37 +16,16 @@ export function OkIcon({ size = 16 }: { size?: number }) {
 }
 
 export function severityLabel(s: Severity): string {
-  return s === 'erreur' ? 'Erreur' : s === 'avertissement' ? 'À vérifier' : 'Info';
+  return s === 'erreur' ? 'Anomalie' : s === 'avertissement' ? 'À vérifier' : 'Remarque';
 }
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
-  const tone = severity === 'erreur' ? 'error' : severity === 'avertissement' ? 'warn' : 'info';
+  const tone = severity === 'erreur' ? 'warn' : severity === 'avertissement' ? 'info' : 'neutral';
   return (
     <Badge tone={tone}>
       <SeverityIcon severity={severity} size={12} />
       {severityLabel(severity)}
     </Badge>
-  );
-}
-
-/** Barre de proportion horizontale (empilée). */
-export function ProportionBar({
-  segments,
-}: {
-  segments: { label: string; value: number; className: string }[];
-}) {
-  const total = segments.reduce((s, x) => s + Math.max(0, x.value), 0) || 1;
-  return (
-    <div className="flex h-3 w-full overflow-hidden rounded-full surface-2">
-      {segments.map((s, i) => (
-        <div
-          key={i}
-          className={cx('h-full', s.className)}
-          style={{ width: `${Math.max(0, (s.value / total) * 100)}%` }}
-          title={`${s.label}`}
-        />
-      ))}
-    </div>
   );
 }
 

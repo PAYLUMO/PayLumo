@@ -9,38 +9,47 @@ export function Anomalies({ result }: { result: AnalysisResult }) {
 
   return (
     <Card>
-      <SectionTitle hint={`${actionable.length} constat${actionable.length > 1 ? 's' : ''}`}>
-        Anomalies et points de vigilance
+      <SectionTitle hint={`${actionable.length} point${actionable.length > 1 ? 's' : ''}`}>
+        Ce que nous avons remarqué
       </SectionTitle>
 
       {actionable.length === 0 ? (
         <div className="flex items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm dark:bg-brand-950/40">
           <OkIcon size={18} />
-          Rien d’anormal détecté sur les points contrôlés (taux 2026, calculs, cohérence brut → net).
+          Rien d’anormal sur les points vérifiés (taux 2026, calculs, cohérence brut → net).
         </div>
       ) : (
-        <ul className="space-y-3">
-          {actionable.map((f) => (
-            <li key={f.id} className="rounded-xl border border-[rgb(var(--border))] p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <SeverityBadge severity={f.severity} />
-                <span className="font-semibold">{f.title}</span>
-                {f.impactEuro != null && Math.abs(f.impactEuro) >= 0.5 && (
-                  <span className="ml-auto text-sm font-bold tabular-nums">
-                    {formatSignedEuro(f.impactEuro)}
-                  </span>
-                )}
-              </div>
+        <>
+          <p className="mb-3 text-sm text-muted">
+            Rien d’alarmant ici. Ces points méritent juste une question à votre service paie, qui
+            pourra vous les expliquer.
+          </p>
+          <ul className="space-y-3">
+            {actionable.map((f) => (
+              <li
+                key={f.id}
+                className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <SeverityBadge severity={f.severity} />
+                  <span className="font-semibold">{f.title}</span>
+                  {f.impactEuro != null && Math.abs(f.impactEuro) >= 0.5 && (
+                    <span className="ml-auto text-sm font-bold tabular-nums">
+                      {formatSignedEuro(f.impactEuro)}
+                    </span>
+                  )}
+                </div>
               {(f.expected != null || f.found != null) && (
                 <div className="mt-1 text-xs text-muted">
                   Attendu : <span className="font-medium text-[rgb(var(--text))]">{f.expected ?? '—'}</span> ·
                   Lu : <span className="font-medium text-[rgb(var(--text))]">{f.found ?? '—'}</span>
                 </div>
               )}
-              <p className="mt-1.5 text-sm text-muted">{f.detail}</p>
-            </li>
-          ))}
-        </ul>
+                <p className="mt-1.5 text-sm text-muted">{f.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {infos.length > 0 && (

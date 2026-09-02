@@ -9,7 +9,7 @@ import { expectedBase, isExpected, resolveRate, type AnalysisContext } from '../
 const MIN_CONF = 0.55;
 
 function whatToDo(): string {
-  return 'Que faire : demandez à votre service paie une explication écrite ou une régularisation. En cas de désaccord persistant, vous pouvez saisir l’inspection du travail ou le conseil de prud’hommes.';
+  return 'Le plus simple : demandez à votre service paie de vous expliquer cette ligne. Une différence de paramétrage se corrige le plus souvent sans formalité.';
 }
 
 function lineBase(line: ContributionLine, ref: RateRef, ctx: AnalysisContext): number | null {
@@ -64,7 +64,7 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
                 side === 'employee' ? 'salarial' : 'patronal'
               } lu sur le bulletin diffère du taux ${isMin ? 'minimum ' : ''}légal 2026. ` +
               (side === 'employer'
-                ? 'Cela ne change pas votre net, mais peut signaler une erreur de paramétrage. '
+                ? 'Cela ne change pas votre net ; c’est plutôt un point de paramétrage à revoir côté employeur. '
                 : '') +
               whatToDo(),
             expected: `${isMin ? '≥ ' : ''}${formatPercent(expected)}`,
@@ -195,7 +195,7 @@ export function checkUnknownLines(ctx: AnalysisContext): Finding[] {
       title: `Ligne non reconnue — ${line.label}`,
       detail:
         'PayLumo n’a pas pu rattacher cette ligne à une cotisation connue de son référentiel 2026. ' +
-        'Ce n’est pas forcément une erreur (cotisation de branche, retenue spécifique). ',
+        'C’est souvent normal (cotisation propre à votre branche, retenue spécifique). Au besoin, votre service paie pourra vous préciser à quoi elle correspond. ',
       found: line.employee?.amount ? formatEuro(line.employee.amount.value) : undefined,
     });
   }

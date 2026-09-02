@@ -8,24 +8,30 @@ import { ConfidencePill, OkIcon, SeverityIcon } from './shared';
 export function Summary({ analysis }: { analysis: StoredAnalysis }) {
   const { result, payslip, label } = analysis;
   const { severityCounts, netImpactEuro, canAnalyze } = result.summary;
-  const nErr = severityCounts.erreur;
-  const nWarn = severityCounts.avertissement;
+  const nAnom = severityCounts.erreur;
+  const nCheck = severityCounts.avertissement;
 
   const headline = !canAnalyze
     ? 'Lecture incomplète'
-    : nErr > 0
-      ? `${nErr} anomalie${nErr > 1 ? 's' : ''} à corriger`
-      : nWarn > 0
-        ? `${nWarn} point${nWarn > 1 ? 's' : ''} à vérifier`
-        : 'Aucune anomalie détectée';
+    : nAnom > 0
+      ? `${nAnom} anomalie${nAnom > 1 ? 's' : ''} repérée${nAnom > 1 ? 's' : ''}`
+      : nCheck > 0
+        ? `${nCheck} point${nCheck > 1 ? 's' : ''} à vérifier`
+        : 'Aucune anomalie repérée';
 
+  // Palette apaisée : ambre pour une anomalie (jamais rouge), vert quand tout va bien.
   const tone = !canAnalyze
     ? 'surface-2'
-    : nErr > 0
-      ? 'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/40'
-      : nWarn > 0
-        ? 'border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30'
-        : 'border-brand-300 bg-brand-50 dark:border-brand-900 dark:bg-brand-950/40';
+    : nAnom > 0 || nCheck > 0
+      ? 'border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25'
+      : 'border-brand-300 bg-brand-50 dark:border-brand-900 dark:bg-brand-950/40';
+
+  const impactLabel =
+    netImpactEuro > 0
+      ? 'en votre faveur — à faire valoir'
+      : netImpactEuro < 0
+        ? 'à votre charge'
+        : 'impact estimé';
 
   return (
     <Card className={tone}>
@@ -33,10 +39,10 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
           <h1 className="mt-1 flex items-center gap-2 text-lg font-extrabold sm:text-xl">
-            {canAnalyze && nErr === 0 && nWarn === 0 ? (
+            {canAnalyze && nAnom === 0 && nCheck === 0 ? (
               <OkIcon size={22} />
             ) : (
-              <SeverityIcon severity={nErr > 0 ? 'erreur' : 'avertissement'} size={22} />
+              <SeverityIcon severity={nAnom > 0 ? 'erreur' : 'avertissement'} size={22} />
             )}
             {headline}
           </h1>
@@ -55,25 +61,26 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
 
       {canAnalyze && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <Stat n={nErr} label="Erreurs" tone="text-red-600 dark:text-red-400" />
-          <Stat n={nWarn} label="À vérifier" tone="text-amber-600 dark:text-amber-400" />
+          <Stat n={nAnom} label="Anomalies" tone="text-amber-600 dark:text-amber-400" />
+          <Stat n={nCheck} label="À vérifier" tone="text-sky-600 dark:text-sky-400" />
           <div className="rounded-xl surface-2 p-2">
             <div className="text-lg font-extrabold tabular-nums">
               {netImpactEuro === 0 ? '—' : formatSignedEuro(netImpactEuro)}
             </div>
-            <div className="text-[11px] text-muted">
-              Impact estimé{netImpactEuro > 0 ? ' (en votre faveur)' : netImpactEuro < 0 ? ' (défaveur)' : ''}
-            </div>
+            <div className="text-[11px] leading-tight text-muted">{impactLabel}</div>
           </div>
         </div>
       )}
 
       <p className="mt-4 text-xs text-muted">
+        {nAnom > 0
+          ? 'Rien d’alarmant : le plus souvent, une question au service paie suffit à clarifier. '
+          : ''}
         Bulletin : {payslip.employee.emploi ?? 'poste non lu'} ·{' '}
         {payslip.employee.statut === 'inconnu' ? 'statut non lu' : payslip.employee.statut}
-        {payslip.employee.regime === 'alsace-moselle' ? ' · Alsace-Moselle' : ''} · analyse{' '}
+        {payslip.employee.regime === 'alsace-moselle' ? ' · Alsace-Moselle' : ''} · barème{' '}
         <Link to="/parametres" className="underline">
-          référentiel 2026
+          2026
         </Link>
         .
       </p>

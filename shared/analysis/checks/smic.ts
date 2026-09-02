@@ -30,8 +30,8 @@ export function checkSmic(ctx: AnalysisContext): Finding[] {
           `Le salaire de base (${formatEuro(salaireBase)} pour ${heures.toLocaleString('fr-FR')} h) ` +
           `revient à ${formatEuro(tauxHoraire)} de l’heure, en dessous du SMIC applicable ` +
           `(${formatEuro(smic.horaire)} de l’heure au ${new Date(smic.from).toLocaleDateString('fr-FR')}). ` +
-          'Sauf abattement légal spécifique (apprenti, contrat de professionnalisation…), le SMIC est un minimum. ' +
-          'Que faire : signalez-le à votre employeur ; à défaut de régularisation, saisissez l’inspection du travail.',
+          'Sauf abattement légal spécifique (apprenti, contrat de professionnalisation…), le SMIC est un minimum garanti par la loi. ' +
+          'Signalez-le à votre service paie : la différence doit vous être versée.',
         expected: `≥ ${formatEuro(smic.horaire)} / h`,
         found: `${formatEuro(tauxHoraire)} / h`,
         impactEuro: manque,
@@ -51,7 +51,7 @@ export function checkSmic(ctx: AnalysisContext): Finding[] {
       detail:
         `Pour un temps plein, le salaire de base (${formatEuro(salaireBase)}) est inférieur au SMIC ` +
         `mensuel applicable (${formatEuro(smic.mensuel151_67)}). ` +
-        'Que faire : demandez une régularisation ; à défaut, saisissez l’inspection du travail.',
+        'Le SMIC est un minimum garanti par la loi : signalez-le à votre service paie, la différence doit vous être versée.',
       expected: `≥ ${formatEuro(smic.mensuel151_67)}`,
       found: formatEuro(salaireBase),
       impactEuro: roundCents(smic.mensuel151_67 - salaireBase),

@@ -5,6 +5,7 @@ import { Button, Card } from '@/components/ui';
 import { useAnalysisStore } from '@/app/store';
 import type { StoredAnalysis } from '@shared/analysis/types';
 import { Summary } from './Summary';
+import { MoneyMap } from './MoneyMap';
 import { GrossComposition } from './GrossComposition';
 import { Contributions } from './Contributions';
 import { BrutToNet } from './BrutToNet';
@@ -55,17 +56,19 @@ export function ResultsPage() {
       <Anomalies result={result} />
       {result.summary.canAnalyze && (
         <>
+          <MoneyMap payslip={payslip} />
+          <BrutToNet payslip={payslip} />
           <GrossComposition payslip={payslip} />
           <Contributions payslip={payslip} result={result} />
-          <BrutToNet payslip={payslip} />
         </>
       )}
       <ExtractedData payslip={payslip} />
 
       <Card className="surface-2 text-xs text-muted">
-        Analyse indicative fondée sur les barèmes publics 2026 (URSSAF, BOSS, Agirc-Arrco). Elle
-        ne remplace pas l’avis de votre service paie, d’un expert-comptable ou de
-        l’inspection du travail. PayLumo peut se tromper si une ligne du bulletin a été mal lue.
+        Analyse indicative fondée sur les barèmes publics 2026 (URSSAF, BOSS, Agirc-Arrco). Le but
+        est de vous aider à comprendre votre fiche — pour toute précision, votre service paie ou un
+        expert-comptable reste le bon interlocuteur. PayLumo peut se tromper si une ligne du
+        bulletin a été mal lue.
       </Card>
 
       <div className="flex justify-center pb-4">

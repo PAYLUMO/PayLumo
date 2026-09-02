@@ -124,11 +124,9 @@ function LineRow({
             key={f.id}
             className={cx(
               'rounded-lg p-2 text-xs',
-              f.severity === 'erreur'
-                ? 'bg-red-100 text-red-900 dark:bg-red-950/50 dark:text-red-200'
-                : f.severity === 'avertissement'
-                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
-                  : 'surface-2',
+              f.severity === 'erreur' || f.severity === 'avertissement'
+                ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                : 'surface-2',
             )}
           >
             <span className="font-semibold">{f.title}</span>
@@ -170,11 +168,13 @@ function RatePair({
     <span className="block">
       <span className="text-muted">{label} </span>
       {found != null ? (
-        <span className={cx(mismatch && 'font-bold text-red-600 dark:text-red-400')}>{formatPercent(found)}</span>
+        <span className={cx(mismatch && 'font-bold text-amber-700 dark:text-amber-400')}>
+          {formatPercent(found)}
+        </span>
       ) : null}
       {mismatch && expected != null ? (
-        <Badge tone="error" className="ml-1 !px-1 !py-0">
-          ≠ {formatPercent(expected)}
+        <Badge tone="warn" className="ml-1 !px-1 !py-0">
+          barème {formatPercent(expected)}
         </Badge>
       ) : null}
       {amount != null ? <span className="ml-1 text-muted">· {formatEuro(amount)}</span> : null}
