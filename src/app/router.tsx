@@ -6,6 +6,7 @@ import { ResultsPage } from '@/features/results/ResultsPage';
 import { CotisationDetailPage } from '@/features/explain/CotisationDetailPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { ComparatorPage } from '@/features/comparator/ComparatorPage';
 import { NotFoundPage } from '@/app/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'analyser', element: <ImportPage /> },
+      { path: 'comparateur', element: <ComparatorPage /> },
       { path: 'resultats/:id', element: <ResultsPage /> },
       { path: 'cotisation/:code', element: <CotisationDetailPage /> },
       { path: 'historique', element: <HistoryPage /> },

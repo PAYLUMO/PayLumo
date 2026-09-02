@@ -1,11 +1,12 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { History, Home, Moon, Sun } from 'lucide-react';
+import { History, Home, Moon, Scale, Sun } from 'lucide-react';
 import { BrandLockup } from '@/components/Brand';
 import { useTheme } from '@/app/theme';
 import { cx } from '@/components/ui';
 
 const NAV = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
+  { to: '/comparateur', label: 'Comparateur', icon: Scale, end: false },
   { to: '/historique', label: 'Historique', icon: History, end: false },
 ];
 
@@ -69,7 +70,7 @@ export function Layout() {
         PayLumo — barème 2026
       </footer>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-2 border-t bg-[rgb(var(--bg))] sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t bg-[rgb(var(--bg))] sm:hidden">
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
