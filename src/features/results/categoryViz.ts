@@ -28,15 +28,27 @@ export interface CategoryCost {
   euro: number;
 }
 
-/** Total des cotisations salariales par famille, ce mois, trié décroissant. */
-export function employeeCostByCategory(payslip: Payslip): CategoryCost[] {
+function byCategory(
+  payslip: Payslip,
+  pick: (c: Payslip['contributions'][number]) => number | undefined,
+): CategoryCost[] {
   const map = new Map<ContribCategory, number>();
   for (const c of payslip.contributions) {
-    const amt = Math.abs(c.employee?.amount?.value ?? 0);
+    const amt = Math.abs(pick(c) ?? 0);
     if (amt <= 0) continue;
     map.set(c.category, roundCents((map.get(c.category) ?? 0) + amt));
   }
   return [...map.entries()]
     .map(([category, euro]) => ({ category, euro }))
     .sort((a, b) => b.euro - a.euro);
+}
+
+/** Total des cotisations salariales par famille, ce mois, trié décroissant. */
+export function employeeCostByCategory(payslip: Payslip): CategoryCost[] {
+  return byCategory(payslip, (c) => c.employee?.amount?.value);
+}
+
+/** Total des cotisations patronales par famille, ce mois, trié décroissant. */
+export function employerCostByCategory(payslip: Payslip): CategoryCost[] {
+  return byCategory(payslip, (c) => c.employer?.amount?.value);
 }

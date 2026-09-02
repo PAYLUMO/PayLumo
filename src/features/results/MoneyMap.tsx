@@ -68,7 +68,36 @@ export function MoneyMap({ payslip }: { payslip: Payslip }) {
         </ul>
       </div>
 
-      <p className="mt-4 text-xs text-muted">
+      {(payslip.netImposable || payslip.netSocial) && (
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-[rgb(var(--border))] pt-3 text-xs text-muted">
+          {payslip.netImposable && (
+            <span>
+              Net imposable{' '}
+              <strong className="tabular-nums text-[rgb(var(--text))]">
+                {formatEuro(payslip.netImposable.value)}
+              </strong>
+            </span>
+          )}
+          {payslip.netSocial && (
+            <span>
+              Net social{' '}
+              <strong className="tabular-nums text-[rgb(var(--text))]">
+                {formatEuro(payslip.netSocial.value)}
+              </strong>
+            </span>
+          )}
+          {payslip.pas?.rate && (
+            <span>
+              Taux prélèvement source{' '}
+              <strong className="tabular-nums text-[rgb(var(--text))]">
+                {payslip.pas.rate.value} %
+              </strong>
+            </span>
+          )}
+        </div>
+      )}
+
+      <p className="mt-3 text-xs text-muted">
         Vos cotisations financent une protection collective : soins remboursés, retraite, revenu en
         cas de chômage… Le détail par famille est plus bas.
       </p>
