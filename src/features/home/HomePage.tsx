@@ -1,8 +1,11 @@
-import { Link } from 'react-router-dom';
-import { FileSearch, Lock, ShieldCheck, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, FileSearch, Loader2, Lock, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandMark } from '@/components/Brand';
 import { Button, Card } from '@/components/ui';
 import { formatEuro } from '@shared/lib/money';
+import { useAnalysisStore } from '@/app/store';
+import { DEMO_ID, runDemo } from '@/features/demo/runDemo';
 
 const PRICE = 0.99;
 
@@ -30,6 +33,21 @@ const FEATURES = [
 ];
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const setCurrent = useAnalysisStore((s) => s.setCurrent);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  const openDemo = async () => {
+    setDemoLoading(true);
+    try {
+      const analysis = await runDemo();
+      setCurrent(analysis);
+      navigate(`/resultats/${DEMO_ID}`);
+    } catch {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className="flex flex-col items-center pt-6 text-center">
@@ -50,6 +68,15 @@ export function HomePage() {
         <p className="mt-3 text-xs text-muted">
           PDF uniquement · {formatEuro(PRICE)} par analyse · sans compte
         </p>
+        <button
+          type="button"
+          onClick={() => void openDemo()}
+          disabled={demoLoading}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline disabled:opacity-60 dark:text-brand-300"
+        >
+          {demoLoading ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+          Voir un exemple d’analyse (gratuit)
+        </button>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">

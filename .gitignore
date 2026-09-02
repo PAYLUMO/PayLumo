@@ -39,3 +39,6 @@ coverage
 /samples/*
 !/samples/.gitkeep
 !/samples/README.md
+
+# TS build info
+*.tsbuildinfo
