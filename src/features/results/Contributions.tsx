@@ -8,6 +8,7 @@ import { rateByCode } from '@shared/data/rates2026';
 import { buildContext, resolveRate } from '@shared/analysis/context';
 import type { AnalysisResult, Finding } from '@shared/analysis/findings';
 import { OkIcon, SeverityIcon } from './shared';
+import { CAT_COLOR, employeeCostByCategory } from './categoryViz';
 
 const ORDER: ContribCategory[] = ['SANTE', 'ATMP', 'RETRAITE', 'FAMILLE', 'CHOMAGE', 'CSG_CRDS', 'AUTRES'];
 
@@ -33,15 +34,30 @@ export function Contributions({
     arr.push(line);
     grouped.set(line.category, arr);
   }
+  const salByCat = new Map(employeeCostByCategory(payslip).map((c) => [c.category, c.euro]));
 
   return (
     <Card>
       <SectionTitle hint="taux comparés au barème 2026">Cotisations, ligne par ligne</SectionTitle>
       <div className="space-y-5">
-        {ORDER.filter((c) => grouped.has(c)).map((cat) => (
+        {ORDER.filter((c) => grouped.has(c)).map((cat) => {
+          const salTotal = salByCat.get(cat) ?? 0;
+          return (
           <section key={cat}>
-            <div className="mb-1 flex items-baseline justify-between">
-              <h3 className="text-sm font-bold">{CATEGORY_EXPLAIN[cat].title}</h3>
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 text-sm font-bold">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: CAT_COLOR[cat] }}
+                  aria-hidden="true"
+                />
+                {CATEGORY_EXPLAIN[cat].title}
+              </h3>
+              {salTotal > 0 && (
+                <span className="shrink-0 text-xs tabular-nums text-muted">
+                  {formatEuro(salTotal)} ce mois
+                </span>
+              )}
             </div>
             <p className="mb-2 text-xs text-muted">{CATEGORY_EXPLAIN[cat].summary}</p>
             <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))]">
@@ -55,7 +71,8 @@ export function Contributions({
               ))}
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

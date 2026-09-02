@@ -10,7 +10,6 @@ import { GrossComposition } from './GrossComposition';
 import { Contributions } from './Contributions';
 import { BrutToNet } from './BrutToNet';
 import { Anomalies } from './Anomalies';
-import { ExtractedData } from './ExtractedData';
 
 export function ResultsPage() {
   const { id } = useParams();
@@ -62,7 +61,6 @@ export function ResultsPage() {
           <Contributions payslip={payslip} result={result} />
         </>
       )}
-      <ExtractedData payslip={payslip} />
 
       <Card className="surface-2 text-xs text-muted">
         Analyse indicative fondée sur les barèmes publics 2026 (URSSAF, BOSS, Agirc-Arrco). Le but

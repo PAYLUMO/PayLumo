@@ -20,6 +20,7 @@ export const CAT_COLOR: Record<ContribCategory, string> = {
 };
 
 export const NET_COLOR = '#3e9e4e'; // vert marque
+export const COTIS_COLOR = '#ef8a62'; // orange doux (identique à la cascade)
 export const IMPOT_COLOR = '#64748b'; // ardoise
 
 export interface CategoryCost {
