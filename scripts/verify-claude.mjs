@@ -7,17 +7,24 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
+const envPath = resolve(process.cwd(), '.env');
 try {
-  process.loadEnvFile('.env');
+  process.loadEnvFile(envPath);
+  console.log(`.env lu : ${envPath}`);
 } catch {
-  /* .env absent */
+  console.warn(`⚠  pas de .env à ${envPath}`);
 }
 
-if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('sk-ant-...')) {
-  console.error('✗ ANTHROPIC_API_KEY non renseignée dans .env');
+const key = process.env.ANTHROPIC_API_KEY ?? '';
+const mask = key ? `${key.slice(0, 10)}…(${key.length} car.)` : '(vide)';
+if (!key || key.startsWith('sk-ant-...') || key.length < 30) {
+  console.error(`✗ ANTHROPIC_API_KEY non exploitable : ${mask}`);
+  console.error('  → ouvre le .env ci-dessus et remplace la ligne ANTHROPIC_API_KEY par ta vraie clé.');
   process.exit(1);
 }
+console.log(`clé       : ${mask}`);
 
 const file = process.argv[2] ?? 'public/exemple-bulletin.pdf';
 console.log(`Modèle : ${process.env.PAYLUMO_MODEL ?? 'claude-opus-5 (défaut)'}`);
