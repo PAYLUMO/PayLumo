@@ -1,14 +1,12 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { FileSearch, History, Home, Settings, Moon, Sun } from 'lucide-react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { History, Home, Moon, Sun } from 'lucide-react';
 import { BrandLockup } from '@/components/Brand';
 import { useTheme } from '@/app/theme';
 import { cx } from '@/components/ui';
 
 const NAV = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
-  { to: '/analyser', label: 'Analyser', icon: FileSearch, end: false },
   { to: '/historique', label: 'Historique', icon: History, end: false },
-  { to: '/parametres', label: 'Réglages', icon: Settings, end: false },
 ];
 
 function ThemeToggle() {
@@ -44,7 +42,9 @@ export function Layout() {
                 className={({ isActive }) =>
                   cx(
                     'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium',
-                    isActive ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/50 dark:text-brand-200' : 'hover:surface-2',
+                    isActive
+                      ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/50 dark:text-brand-200'
+                      : 'hover:surface-2',
                   )
                 }
               >
@@ -61,7 +61,15 @@ export function Layout() {
         <Outlet key={pathname} />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t bg-[rgb(var(--bg))] sm:hidden">
+      <footer className="mb-16 border-t px-4 py-3 text-center text-xs text-muted sm:mb-0">
+        <Link to="/parametres" className="hover:underline">
+          Réglages
+        </Link>
+        <span className="mx-1.5">·</span>
+        PayLumo — barème 2026
+      </footer>
+
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-2 border-t bg-[rgb(var(--bg))] sm:hidden">
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}

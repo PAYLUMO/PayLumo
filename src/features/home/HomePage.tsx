@@ -96,9 +96,9 @@ export function HomePage() {
       <Card className="surface-2 text-sm text-muted">
         <p>
           <strong className="text-[rgb(var(--text))]">Information, pas conseil.</strong> PayLumo
-          fournit une analyse indicative fondée sur les barèmes publics. En cas de doute,
-          rapprochez-vous de votre service paie, d'un expert-comptable ou de l'inspection du
-          travail.
+          fournit une analyse indicative fondée sur les barèmes publics, pour vous aider à
+          comprendre votre fiche de paie. Pour toute précision, votre service paie ou un
+          expert-comptable est le bon interlocuteur.
         </p>
       </Card>
     </div>
