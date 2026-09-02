@@ -13,8 +13,11 @@ export function DistributionBar({ estimate, salary }: { estimate: Estimate; sala
   const x = (v: number) => ((v - min) / (max - min)) * 100;
 
   return (
-    <div className="pt-6">
-      <div className="relative h-3 rounded-full surface-2">
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+        Salaires du secteur privé · INSEE 2023
+      </p>
+      <div className="relative mt-7 h-3 rounded-full surface-2">
         {/* zone D1–D9 */}
         <div
           className="absolute inset-y-0 rounded-full bg-brand-200 dark:bg-brand-900/60"

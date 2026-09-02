@@ -1,14 +1,22 @@
 /**
  * Repères de salaire — secteur privé, net mensuel en équivalent temps plein
- * (EQTP), millésime 2023 (Insee Première n° 2020, édition 2024).
+ * (EQTP), millésime 2023. À réactualiser chaque année.
  *
- * ⚠️ Estimations agrégées, à réactualiser chaque année. Sources :
- * - insee.fr/fr/statistiques/8270416 (Les salaires dans le secteur privé en 2023)
- * - insee.fr/fr/statistiques/2021266 (par sexe, âge et CSP)
- * - Disparités régionales : insee.fr/fr/statistiques/7767105
+ * Sources INSEE :
+ * - « Les salaires dans le secteur privé en 2023 » (Insee Première n° 2020) —
+ *   insee.fr/fr/statistiques/8270416
+ * - Salaires selon le sexe, l'âge et la CSP — insee.fr/fr/statistiques/2021266
+ * - Disparités régionales — insee.fr/fr/statistiques/7767105
  *
- * Le comparateur combine ces marges (métier × région × âge × sexe) de façon
- * multiplicative : c'est une ESTIMATION, pas une valeur de marché individuelle.
+ * DONNÉES INSEE (telles quelles) :
+ *   NATIONAL (D1/médiane/moyenne/D9), moyennes par CSP (dans les commentaires),
+ *   bornes par âge, écart femmes-hommes.
+ *
+ * DÉRIVÉ / ESTIMÉ par PayLumo à partir de ces données INSEE :
+ *   CSP_MEDIAN (moyenne × ratio médiane/moyenne), METIERS[].medianNet (l'INSEE
+ *   ne publie pas de médiane libre par métier), REGIONS[].coef, AGE_BANDS[].coef,
+ *   SEXE_COEF. Le comparateur les combine multiplicativement → ESTIMATION, pas
+ *   une valeur de marché individuelle.
  */
 
 export const INSEE_YEAR = 2023;

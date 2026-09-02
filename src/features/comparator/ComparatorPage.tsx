@@ -49,8 +49,8 @@ export function ComparatorPage() {
           Comparateur de salaire
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Situez votre salaire net par rapport aux statistiques du secteur privé. Gratuit, calculé
-          sur votre appareil — rien n’est envoyé.
+          Situez votre salaire net par rapport aux statistiques INSEE du secteur privé. Gratuit,
+          calculé sur votre appareil — aucune donnée n’est envoyée.
         </p>
       </div>
 
@@ -154,22 +154,30 @@ export function ComparatorPage() {
                 (<strong>{age.label.toLowerCase()}</strong>)
               </>
             ) : null}{' '}
-            en <strong>{region.label}</strong>, le salaire net mensuel médian estimé est d’environ{' '}
+            en <strong>{region.label}</strong>, le salaire net mensuel médian serait d’environ{' '}
             <strong>{formatEuro(estimate.median, 0)}</strong>
             {' '}
             <span className="text-muted">
               (fourchette {formatEuro(estimate.low, 0)} – {formatEuro(estimate.high, 0)})
             </span>
-            .
+            . <span className="text-amber-700 dark:text-amber-400">Estimation PayLumo</span>.
           </p>
 
           <DistributionBar estimate={estimate} salary={salaryNum > 0 ? salaryNum : undefined} />
 
+          <p className="text-[11px] text-muted">
+            <strong className="text-brand-700 dark:text-brand-400">Données INSEE {INSEE_YEAR}</strong>{' '}
+            : la distribution du secteur privé (déciles, médiane nationale). ·{' '}
+            <strong className="text-amber-700 dark:text-amber-400">Estimation PayLumo</strong> : la
+            médiane par métier / région / âge, calculée en combinant plusieurs statistiques INSEE.
+          </p>
+
           {position && (
             <div className="rounded-xl surface-2 p-3 text-sm">
-              Avec <strong>{formatEuro(salaryNum)}</strong>, vous êtes {position.label}. Sur
-              l’ensemble du privé, cela vous situe autour du{' '}
-              <strong>{position.decile}ᵉ décile</strong> (10 = les 10 % les mieux payés).
+              Avec <strong>{formatEuro(salaryNum)}</strong>, vous vous situez {position.label}.
+              Rapporté à <strong>l’ensemble du secteur privé</strong> (données INSEE), cela
+              correspond au <strong>{position.decile}ᵉ décile</strong> (10 = les 10 % les mieux
+              payés).
             </div>
           )}
 
@@ -190,11 +198,29 @@ export function ComparatorPage() {
         </Card>
       )}
 
-      <Card className="surface-2 text-xs text-muted">
-        Estimation à partir de moyennes <strong>INSEE agrégées</strong> (secteur privé, {INSEE_YEAR},
-        net mensuel en équivalent temps plein). Elle ne constitue ni une valeur de marché
-        individuelle, ni un droit à rémunération : les écarts réels dépendent de l’entreprise, de la
-        branche, du diplôme, de l’ancienneté, des primes… À réactualiser chaque année.
+      <Card className="surface-2 space-y-2 text-xs text-muted">
+        <p>
+          <strong className="text-[rgb(var(--text))]">Comment c’est calculé.</strong> Les repères
+          nationaux (déciles, médiane, moyennes par catégorie et par âge) sont des{' '}
+          <strong>données INSEE {INSEE_YEAR}</strong> (secteur privé, net mensuel en équivalent temps
+          plein). La médiane affichée pour votre profil est une <strong>estimation PayLumo</strong> :
+          l’INSEE ne publie pas de médiane libre métier par métier, on combine donc les statistiques
+          par catégorie, région, âge et sexe. Elle peut s’écarter de la réalité de votre secteur.
+        </p>
+        <p>
+          Ce n’est ni une valeur de marché individuelle, ni un droit à rémunération : les écarts
+          réels dépendent de l’entreprise, de la branche, du diplôme, de l’ancienneté, des primes…
+          Tout est calculé sur votre appareil — <strong>aucune donnée n’est envoyée</strong>.
+        </p>
+        <details>
+          <summary className="cursor-pointer font-medium">Sources INSEE</summary>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            <li>« Les salaires dans le secteur privé en 2023 » (Insee Première n° 2020).</li>
+            <li>Salaires selon le sexe, l’âge et la catégorie socioprofessionnelle.</li>
+            <li>Disparités régionales de salaires (secteur privé).</li>
+          </ul>
+          <p className="mt-1">À réactualiser chaque année.</p>
+        </details>
       </Card>
     </div>
   );
