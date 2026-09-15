@@ -1,17 +1,36 @@
 import {
   PASS,
   PMSS,
+  REFERENCE_YEAR,
   smicAt,
   tranches,
   type SmicPeriod,
   type TrancheBornes,
 } from '../data/params';
 import type { AssietteKind, RateRef, RateSpec } from '../data/rates2026';
+import { detectConvention, findConventionByLabel, isBatimentTP } from '../data/conventions';
 import type { Payslip } from '../parsing/model';
+
+export type ConventionSource = 'user' | 'detected' | 'none';
+
+export interface BuildContextOptions {
+  /**
+   * Libellé de convention choisi explicitement par l'utilisateur dans la liste
+   * déroulante (prioritaire sur la détection). Beaucoup de conventions n'ont pas
+   * de code IDCC confirmé — le libellé exact sert donc d'identifiant.
+   */
+  userConvention?: string | null;
+}
 
 export interface AnalysisContext {
   payslip: Payslip;
+  /** année du référentiel de taux (= `referenceYear`, conservé pour compat). */
   year: number;
+  referenceYear: number;
+  /** année lue sur le bulletin si elle est fiable, sinon null. */
+  periodYear: number | null;
+  /** true si le référentiel s'applique à la période du bulletin (⇒ on compare les taux). */
+  periodCovered: boolean;
   pmss: number;
   pass: number;
   smic: SmicPeriod;
@@ -23,15 +42,50 @@ export interface AnalysisContext {
   /** brut annualisé (× 12) — proxy pour les seuils exprimés en multiples de SMIC. */
   annualGrossEstimate: number;
   effectif: 'lt50' | 'gte50' | 'inconnu';
+  /** convention collective retenue : choisie par l'utilisateur, sinon détectée sur le bulletin. */
+  conventionIdcc: number | null;
+  conventionLabel: string | null;
+  conventionSource: ConventionSource;
+  /** convention relevant du bâtiment / BTP (abattement pour frais professionnels possible). */
+  conventionIsBTP: boolean;
 }
 
-export function buildContext(payslip: Payslip, year = 2026): AnalysisContext {
+export function buildContext(
+  payslip: Payslip,
+  referenceYear: number = REFERENCE_YEAR,
+  opts: BuildContextOptions = {},
+): AnalysisContext {
   const { month, year: py } = payslip.period.value;
-  const periodISO = month && py ? `${py}-${String(month).padStart(2, '0')}-01` : `${year}-01-01`;
+  const periodConfident = payslip.period.confidence >= 0.6 && py > 2000 && py < 2100;
+  const periodYear = periodConfident ? py : null;
+  const periodCovered = periodYear == null || periodYear === referenceYear;
+  const periodISO =
+    month && py ? `${py}-${String(month).padStart(2, '0')}-01` : `${referenceYear}-01-01`;
   const gross = payslip.gross.value;
+
+  let conventionIdcc: number | null = null;
+  let conventionLabel: string | null = null;
+  let conventionSource: ConventionSource = 'none';
+  const chosen = opts.userConvention ? findConventionByLabel(opts.userConvention) : undefined;
+  if (chosen) {
+    conventionIdcc = chosen.idcc;
+    conventionLabel = chosen.label;
+    conventionSource = 'user';
+  } else {
+    const detected = detectConvention(payslip.employer.convention);
+    if (detected) {
+      conventionIdcc = detected.idcc;
+      conventionLabel = detected.label;
+      conventionSource = 'detected';
+    }
+  }
+
   return {
     payslip,
-    year,
+    year: referenceYear,
+    referenceYear,
+    periodYear: periodCovered ? null : periodYear,
+    periodCovered,
     pmss: PMSS,
     pass: PASS,
     smic: smicAt(periodISO),
@@ -41,6 +95,10 @@ export function buildContext(payslip: Payslip, year = 2026): AnalysisContext {
     tranches: tranches(gross),
     annualGrossEstimate: gross * 12,
     effectif: payslip.employer.effectifTranche ?? 'inconnu',
+    conventionIdcc,
+    conventionLabel,
+    conventionSource,
+    conventionIsBTP: isBatimentTP(conventionLabel) || isBatimentTP(payslip.employer.convention),
   };
 }
 

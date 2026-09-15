@@ -11,7 +11,16 @@ export function EmployerCost({ payslip }: { payslip: Payslip }) {
   if (gross <= 0) return null;
 
   const byCat = employerCostByCategory(payslip);
-  const totalPat = roundCents(byCat.reduce((s, c) => s + c.euro, 0));
+  const perLinePat = roundCents(byCat.reduce((s, c) => s + c.euro, 0));
+
+  // Total patronal : on privilégie ce que le bulletin affiche lui-même
+  // (ligne « Total des cotisations » ou « Coût total employeur »), la somme
+  // ligne à ligne ne servant que de secours.
+  const totalFromBulletin =
+    payslip.contributionsTotal?.employer?.value ??
+    (payslip.employerCost?.value ? roundCents(payslip.employerCost.value - gross) : undefined);
+  const totalPat = totalFromBulletin ?? perLinePat;
+
   if (totalPat <= 0) {
     return (
       <Card>
@@ -24,16 +33,24 @@ export function EmployerCost({ payslip }: { payslip: Payslip }) {
     );
   }
 
-  const cost = roundCents(gross + totalPat);
-  const totalSal = roundCents(
-    payslip.contributions.reduce((s, c) => s + Math.abs(c.employee?.amount?.value ?? 0), 0),
-  );
+  const cost = payslip.employerCost?.value ?? roundCents(gross + totalPat);
+  const totalSal =
+    payslip.contributionsTotal?.employee?.value ??
+    roundCents(
+      payslip.contributions.reduce((s, c) => s + Math.abs(c.employee?.amount?.value ?? 0), 0),
+    );
   const pas = payslip.pas?.amount?.value ?? 0;
   const netPaye = payslip.netAPayer.value || roundCents(gross - totalSal - pas);
   const ratio = netPaye > 0 ? cost / netPaye : 0;
 
+  // Reliquat éventuel entre le total du bulletin et le détail par famille lu.
+  const patRemainder = roundCents(totalPat - perLinePat);
+
+  // La part « nette » de la barre est le solde (garantit que la barre = coût
+  // total, même quand des indemnités non soumises brouillent brut − cotis = net).
+  const netShare = roundCents(cost - totalPat - totalSal - pas);
   const bar = [
-    { label: 'Net payé', value: netPaye, color: NET_COLOR },
+    { label: 'Net pour le salarié', value: netShare > 0 ? netShare : 0, color: NET_COLOR },
     ...(pas > 0 ? [{ label: 'Impôt sur le revenu', value: pas, color: IMPOT_COLOR }] : []),
     { label: 'Cotisations salariales', value: totalSal, color: COTIS_COLOR },
     { label: 'Cotisations patronales', value: totalPat, color: PAT_COLOR },
@@ -93,6 +110,19 @@ export function EmployerCost({ payslip }: { payslip: Payslip }) {
             <span className="tabular-nums text-muted">{formatEuro(c.euro)}</span>
           </li>
         ))}
+        {patRemainder > 1 && (
+          <li className="flex items-center justify-between gap-2 text-sm">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ background: CAT_COLOR.AUTRES }}
+                aria-hidden="true"
+              />
+              Autres (conventionnelles, non détaillées)
+            </span>
+            <span className="tabular-nums text-muted">{formatEuro(patRemainder)}</span>
+          </li>
+        )}
       </ul>
 
       <p className="mt-4 text-xs text-muted">

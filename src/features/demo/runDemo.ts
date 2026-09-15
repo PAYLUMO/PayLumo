@@ -1,5 +1,5 @@
 /**
- * Démo : analyse le bulletin d'exemple embarqué, en local, sans paiement.
+ * Démo : analyse le bulletin d'exemple embarqué, en local, sans code d'accès.
  * Réutilise le vrai pipeline (extraction + moteur d'analyse), donc reste
  * toujours cohérent avec le référentiel 2026.
  */

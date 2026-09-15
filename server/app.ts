@@ -1,10 +1,10 @@
 /**
- * API PayLumo — analyse payante.
+ * API PayLumo — analyse d'un bulletin de paie.
  *
  * App Hono partagée par le dev local (`server/dev.ts`) et Vercel (`api/*.ts`).
- *   POST /api/checkout  { pdfHash }              → { url }  (Stripe Checkout)
- *   POST /api/analyze   { session_id, pdf, ... } → StoredAnalysis  (après paiement vérifié)
+ *   POST /api/analyze   { code, pdf, fileName, convention? } → StoredAnalysis
  *
+ * L'analyse est débloquée par un code d'accès (`PAYLUMO_ACCESS_CODE`).
  * Ne journalise ni ne stocke le contenu du PDF.
  */
 
@@ -12,7 +12,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { modelName } from './claude.js';
 import { runAnalysis, TransientError, UnreadableError } from './analyze.js';
-import { createCheckout, PRICE_CENTS, refund, stripeConfigured, verifyPaid } from './stripe.js';
+import { findConventionByLabel } from '../shared/data/conventions.js';
 
 const MAX_PDF_BYTES = (Number(process.env.MAX_PDF_MB) || 8) * 1024 * 1024;
 const RATE_LIMIT_PER_HOUR = Number(process.env.RATE_LIMIT_PER_HOUR) || 30;
@@ -21,12 +21,15 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
   .map((s) => s.trim())
   .filter(Boolean);
 
-function pickOrigin(header: string | undefined): string {
-  return header && ALLOWED_ORIGINS.includes(header) ? header : ALLOWED_ORIGINS[0];
+/** Code d'accès attendu — comparé sans casse ni espaces. */
+const ACCESS_CODE = (process.env.PAYLUMO_ACCESS_CODE || 'ASSIATA').trim().toLowerCase();
+
+function codeOk(input: unknown): boolean {
+  return typeof input === 'string' && input.trim().toLowerCase() === ACCESS_CODE;
 }
 
-// Rate-limit + sessions consommées : en mémoire (best-effort ; le pdfHash reste
-// la vraie garde anti-rejeu). Prod : Vercel KV / Upstash.
+// Rate-limit : en mémoire (best-effort, se réinitialise au cold start).
+// Prod : Vercel KV / Upstash.
 const hits = new Map<string, number[]>();
 function rateLimited(ip: string): boolean {
   const now = Date.now();
@@ -64,74 +67,42 @@ app.use(
   }),
 );
 
-app.get('/api/health', (c) =>
-  c.json({ ok: true, model: modelName, priceCents: PRICE_CENTS, stripe: stripeConfigured() }),
-);
-
-app.post('/api/checkout', async (c) => {
-  if (!stripeConfigured()) return c.json({ error: 'payments_unavailable' }, 503);
-
-  let body: { pdfHash?: unknown };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'bad_json' }, 400);
-  }
-  const pdfHash = typeof body.pdfHash === 'string' ? body.pdfHash : '';
-  if (!/^[0-9a-f]{64}$/.test(pdfHash)) return c.json({ error: 'bad_hash' }, 400);
-
-  try {
-    const url = await createCheckout(pdfHash, pickOrigin(c.req.header('origin')));
-    return c.json({ url });
-  } catch (err) {
-    console.error('[checkout] échec:', err instanceof Error ? err.message : err);
-    return c.json({ error: 'checkout_failed' }, 502);
-  }
-});
+app.get('/api/health', (c) => c.json({ ok: true, model: modelName }));
 
 app.post('/api/analyze', async (c) => {
   const ip =
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip') || 'local';
   if (rateLimited(ip)) return c.json({ error: 'rate_limited' }, 429);
 
-  let body: { session_id?: unknown; pdf?: unknown; fileName?: unknown };
+  let body: { code?: unknown; pdf?: unknown; fileName?: unknown; convention?: unknown };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: 'bad_json' }, 400);
   }
 
-  const sessionId = typeof body.session_id === 'string' ? body.session_id : '';
-  if (!sessionId) return c.json({ error: 'missing_session' }, 400);
+  if (!codeOk(body.code)) return c.json({ error: 'bad_code' }, 401);
 
   const decoded = decodePdf(body.pdf);
   if ('error' in decoded) return c.json({ error: decoded.error }, decoded.status);
   const { bytes } = decoded;
   const fileName = typeof body.fileName === 'string' ? body.fileName.slice(0, 120) : 'bulletin.pdf';
+  // On ne retient que les libellés connus du référentiel (pas de texte arbitraire).
+  const conventionLabel =
+    typeof body.convention === 'string' && findConventionByLabel(body.convention)
+      ? body.convention
+      : null;
 
-  // 1. Vérification du paiement
-  if (!stripeConfigured()) return c.json({ error: 'payments_unavailable' }, 503);
-  const paid = await verifyPaid(sessionId, bytes);
-  if (!paid.ok) {
-    const status =
-      paid.reason === 'hash_mismatch' ? 403 : paid.reason === 'refunded' ? 409 : 402;
-    return c.json({ error: paid.reason ?? 'not_paid' }, status);
-  }
-
-  // 2. Analyse
   try {
-    const analysis = await runAnalysis(bytes.toString('base64'), fileName);
+    const analysis = await runAnalysis(bytes.toString('base64'), fileName, conventionLabel);
     return c.json(analysis);
   } catch (err) {
     if (err instanceof TransientError) {
-      // panne passagère : session conservée, l'utilisateur peut réessayer sans repayer
       console.error('[analyze] transitoire:', err.message);
       return c.json({ error: 'retry' }, 502);
     }
     if (err instanceof UnreadableError) {
-      // échec définitif → remboursement automatique
-      if (paid.paymentIntentId) await refund(paid.paymentIntentId);
-      return c.json({ error: 'unreadable', refunded: Boolean(paid.paymentIntentId) }, 422);
+      return c.json({ error: 'unreadable' }, 422);
     }
     console.error('[analyze] inattendu:', err instanceof Error ? err.message : err);
     return c.json({ error: 'server_error' }, 500);

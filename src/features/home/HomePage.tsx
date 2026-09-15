@@ -3,11 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, FileSearch, Loader2, Lock, Scale, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandMark } from '@/components/Brand';
 import { Button, Card } from '@/components/ui';
-import { formatEuro } from '@shared/lib/money';
 import { useAnalysisStore } from '@/app/store';
 import { DEMO_ID, runDemo } from '@/features/demo/runDemo';
-
-const PRICE = 0.99;
 
 const FEATURES = [
   {
@@ -51,7 +48,7 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <section className="flex flex-col items-center pt-6 text-center">
-        <BrandMark className="h-16 w-16" />
+        <BrandMark className="h-20" />
         <h1 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">
           Comprenez et vérifiez votre bulletin de paie
         </h1>
@@ -66,7 +63,7 @@ export function HomePage() {
           </Button>
         </Link>
         <p className="mt-3 text-xs text-muted">
-          PDF uniquement · {formatEuro(PRICE)} par analyse · sans compte
+          PDF natif uniquement (pas de scan) · accès par code · sans compte
         </p>
         <button
           type="button"
@@ -112,8 +109,8 @@ export function HomePage() {
       <Card className="surface-2 text-sm text-muted">
         <p>
           <strong className="text-[rgb(var(--text))]">Information, pas conseil.</strong> PayLumo
-          fournit une analyse indicative fondée sur les barèmes publics, pour vous aider à
-          comprendre votre fiche de paie. Pour toute précision, votre service paie ou un
+          explique votre fiche et compare les taux au <strong className="text-[rgb(var(--text))]">barème
+          légal 2026</strong>. Pour toute confirmation, votre gestionnaire de paie ou un
           expert-comptable est le bon interlocuteur.
         </p>
       </Card>

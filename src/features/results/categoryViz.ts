@@ -19,7 +19,7 @@ export const CAT_COLOR: Record<ContribCategory, string> = {
   AUTRES: '#a8a29e', // pierre
 };
 
-export const NET_COLOR = '#3e9e4e'; // vert marque
+export const NET_COLOR = '#288d3f'; // vert marque (logo officiel)
 export const COTIS_COLOR = '#ef8a62'; // orange doux (identique à la cascade)
 export const IMPOT_COLOR = '#64748b'; // ardoise
 

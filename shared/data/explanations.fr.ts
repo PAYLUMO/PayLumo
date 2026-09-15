@@ -240,3 +240,28 @@ export const EXPLAIN: Partial<Record<CanonicalCode, CotisationExplain>> = {
       'Beaucoup de bulletins présentent ces deux prélèvements sur une seule ligne, au taux cumulé de 2,90 %. Cette part n’est pas déductible : elle est réintégrée dans le revenu imposable.',
   },
 };
+
+/** « Nets » et prélèvement à la source — à quoi chaque montant sert concrètement. */
+export const NET_EXPLAIN = {
+  netImposable: {
+    title: 'Net imposable',
+    summary:
+      'La base que votre employeur déclare aux impôts : cumulée sur l’année, elle pré-remplit votre déclaration de revenus.',
+    finance:
+      'C’est le salaire brut diminué des cotisations sociales déductibles, puis augmenté de la CSG/CRDS non déductible et de certains avantages. Chaque mois, l’employeur transmet ce montant à l’administration fiscale (DSN). Le cumul de janvier à décembre est le chiffre qui apparaît pré-rempli sur votre déclaration de revenus l’année suivante — à vérifier, et à compléter si vous avez d’autres revenus.',
+  },
+  netSocial: {
+    title: 'Net social',
+    summary:
+      'Le montant à indiquer pour vos droits sociaux (RSA, prime d’activité) — affiché sur les bulletins depuis juillet 2023.',
+    finance:
+      'Il simplifie les démarches auprès de la CAF ou de la MSA : plus besoin de recalculer vos ressources à partir du bulletin, il suffit de reporter ce montant chaque trimestre. Il ne sert ni à vos impôts ni à votre net à payer — c’est une information complémentaire, propre aux prestations sociales.',
+  },
+  pas: {
+    title: 'Prélèvement à la source (PAS)',
+    summary:
+      'L’impôt sur le revenu déjà prélevé sur ce bulletin, selon le taux transmis par les impôts.',
+    finance:
+      'Le taux peut être personnalisé (calculé par l’administration fiscale sur vos revenus précédents), individualisé (couple : un taux par personne) ou neutre / non personnalisé (grille par défaut, souvent plus élevée, appliquée quand votre taux réel n’a pas encore été transmis — modifiable à tout moment sur impots.gouv.fr). Ce prélèvement est régularisé chaque année lors de votre déclaration de revenus.',
+  },
+} as const satisfies Record<string, CategoryExplain>;

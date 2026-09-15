@@ -9,7 +9,7 @@ import { expectedBase, isExpected, resolveRate, type AnalysisContext } from '../
 const MIN_CONF = 0.55;
 
 function whatToDo(): string {
-  return 'Le plus simple : demandez à votre service paie de vous expliquer cette ligne. Une différence de paramétrage se corrige le plus souvent sans formalité.';
+  return 'À faire préciser par votre gestionnaire de paie.';
 }
 
 function lineBase(line: ContributionLine, ref: RateRef, ctx: AnalysisContext): number | null {
@@ -37,8 +37,9 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
       const foundRate = part.rate?.value;
       const base = lineBase(line, ref, ctx);
 
-      // 1) Écart de taux
+      // 1) Écart de taux — seulement si le bulletin est de l'année du référentiel
       if (
+        ctx.periodCovered &&
         expected != null &&
         foundRate != null &&
         (part.rate?.confidence ?? 0) >= MIN_CONF &&
@@ -108,8 +109,8 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
       }
     }
 
-    // 3) Assiette suspecte
-    if (line.base && line.base.confidence >= 0.6 && ctx.grossConfident) {
+    // 3) Assiette suspecte — dépend des plafonds du référentiel
+    if (ctx.periodCovered && line.base && line.base.confidence >= 0.6 && ctx.grossConfident) {
       const exp = expectedBase(ref.assiette, ctx);
       if (exp != null && exp > 0 && ref.assiette !== 'csg') {
         const tolEur = Math.max(1, exp * 0.02);
@@ -140,6 +141,7 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
 
 /** Cotisations obligatoires absentes du bulletin. */
 export function checkMissing(ctx: AnalysisContext): Finding[] {
+  if (!ctx.periodCovered) return [];
   if (ctx.payslip.contributions.length < 5 || ctx.payslip.meta.parseConfidence < 0.6) return [];
   const present = new Set(ctx.payslip.contributions.map((c) => c.canonical).filter(Boolean));
   const findings: Finding[] = [];

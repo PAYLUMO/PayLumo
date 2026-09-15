@@ -3,7 +3,7 @@ import type { Finding } from '../findings';
 import type { AnalysisContext } from '../context';
 
 const whatToDo =
-  'Demandez à votre service paie le détail du calcul. En cas d’écart confirmé, une régularisation apparaîtra simplement sur une paie suivante.';
+  'Un écart modéré est souvent normal (ligne non lue, régularisation…). À faire préciser par votre gestionnaire de paie.';
 
 /** Somme des éléments de rémunération = salaire brut affiché ? */
 export function checkGrossComposition(ctx: AnalysisContext): Finding[] {
@@ -45,7 +45,13 @@ export function checkGrossToNet(ctx: AnalysisContext): Finding[] {
     .filter((v): v is NonNullable<typeof v> => !!v && v.confidence >= 0.5);
   if (salAmounts.length < 4) return [];
 
-  const totalSal = roundCents(salAmounts.reduce((s, v) => s + Math.abs(v.value), 0));
+  // Le total salarial affiché sur le bulletin (ligne « Total des cotisations »)
+  // est plus fiable que la somme ligne à ligne, qui peut manquer une ligne.
+  const bulletinTotalSal = p.contributionsTotal?.employee?.value;
+  const totalSal =
+    bulletinTotalSal != null && bulletinTotalSal > 0
+      ? roundCents(bulletinTotalSal)
+      : roundCents(salAmounts.reduce((s, v) => s + Math.abs(v.value), 0));
   const expectedNet = roundCents(p.gross.value - totalSal);
 
   const findings: Finding[] = [];

@@ -6,7 +6,7 @@ import type { AnalysisContext } from '../context';
 /** Le salaire respecte-t-il le SMIC applicable à la période ? */
 export function checkSmic(ctx: AnalysisContext): Finding[] {
   const p = ctx.payslip;
-  if (!ctx.grossConfident) return [];
+  if (!ctx.periodCovered || !ctx.grossConfident) return [];
 
   const heures = p.time.heuresContrat?.value;
   const baseItem = p.grossItems.find((g) => g.kind === 'base' || /salaire de base|salaire mensuel|appointements/i.test(g.label));
@@ -63,6 +63,7 @@ export function checkSmic(ctx: AnalysisContext): Finding[] {
 
 /** Base des cotisations plafonnées ≤ 1 PMSS. */
 export function checkPlafond(ctx: AnalysisContext): Finding[] {
+  if (!ctx.periodCovered) return [];
   const findings: Finding[] = [];
   for (const line of ctx.payslip.contributions) {
     if (!line.base || line.base.confidence < 0.6) continue;

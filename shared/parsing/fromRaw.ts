@@ -8,6 +8,7 @@
 
 import { matchCanonical } from '../data/taxonomy';
 import type { RawExtraction } from '../extraction';
+import { isSummaryOrHeaderLabel } from './summaryLabels';
 import {
   valued,
   type ContribCategory,
@@ -32,7 +33,19 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
     amount: valued(g.amount, C),
   }));
 
-  const contributions: ContributionLine[] = raw.contributions.map((c) => {
+  // Filet de sécurité : même si le modèle a laissé passer un total, un intitulé
+  // de rubrique ou une ligne d'exonération globale, on l'écarte ici — sinon le
+  // coût employeur et la cohérence brut → net sont faussés.
+  const realContribs = raw.contributions.filter(
+    (c) =>
+      !isSummaryOrHeaderLabel(
+        c.label,
+        c.employeeRate != null || c.employerRate != null,
+        c.employeeAmount != null || c.employerAmount != null,
+      ),
+  );
+
+  const contributions: ContributionLine[] = realContribs.map((c) => {
     const section = (c.section ?? undefined) as ContribCategory | undefined;
     const entry = matchCanonical(c.label, { section, statut, regime });
     const line: ContributionLine = {
@@ -87,14 +100,11 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
     },
     employer: {
       name: raw.employer.name ?? undefined,
-      siret: raw.employer.siret ?? undefined,
-      naf: raw.employer.naf ?? undefined,
       convention: raw.employer.convention ?? undefined,
       effectifTranche:
         raw.employer.headcount == null ? 'inconnu' : raw.employer.headcount < 50 ? 'lt50' : 'gte50',
     },
     employee: {
-      matricule: raw.employee.matricule ?? undefined,
       emploi: raw.employee.jobTitle ?? undefined,
       statut,
       regime,
@@ -113,6 +123,21 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
     grossItems,
     gross: hasGross ? valued(raw.gross as number, C) : valued(0, 0),
     contributions,
+    contributionsTotal:
+      raw.contributionsTotal &&
+      (raw.contributionsTotal.employee != null || raw.contributionsTotal.employer != null)
+        ? {
+            employee:
+              raw.contributionsTotal.employee != null
+                ? valued(Math.abs(raw.contributionsTotal.employee), C)
+                : undefined,
+            employer:
+              raw.contributionsTotal.employer != null
+                ? valued(Math.abs(raw.contributionsTotal.employer), C)
+                : undefined,
+          }
+        : undefined,
+    employerCost: raw.employerCost != null ? valued(raw.employerCost, C) : undefined,
     csgCrds,
     adjustments: [],
     netImposable: raw.netTaxable != null ? valued(raw.netTaxable, C) : undefined,
@@ -131,6 +156,7 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
       ? {
           brut: raw.cumuls.gross ?? undefined,
           netImposable: raw.cumuls.netTaxable ?? undefined,
+          netSocial: raw.cumuls.netSocial ?? undefined,
           pas: raw.cumuls.incomeTax ?? undefined,
           heures: raw.cumuls.hours ?? undefined,
         }

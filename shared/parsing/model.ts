@@ -103,6 +103,7 @@ export interface PrelevementSource {
 export interface PayslipCumuls {
   brut?: number;
   netImposable?: number;
+  netSocial?: number;
   pas?: number;
   heures?: number;
   congesSolde?: number;
@@ -122,14 +123,13 @@ export interface Payslip {
 
   employer: {
     name?: string;
-    siret?: string;
-    naf?: string;
     convention?: string;
     effectifTranche?: 'lt50' | 'gte50' | 'inconnu';
   };
 
+  // Aucune donnée identifiant le salarié n'est conservée (ni nom, ni adresse, ni
+  // n° de sécurité sociale, ni matricule).
   employee: {
-    matricule?: string;
     emploi?: string;
     statut: EmployeeStatus;
     regime: SocialRegime;
@@ -147,6 +147,11 @@ export interface Payslip {
   gross: Valued<number>; // salaire brut total
 
   contributions: ContributionLine[];
+
+  /** Ligne récap « Total des cotisations et contributions » du bulletin, si lue. */
+  contributionsTotal?: { employee?: Valued<number>; employer?: Valued<number> };
+  /** Ligne « Coût total employeur » telle qu'affichée sur le bulletin, si lue. */
+  employerCost?: Valued<number>;
 
   csgCrds?: {
     base?: Valued<number>;

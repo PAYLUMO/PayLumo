@@ -36,41 +36,58 @@ export function Contributions({
   }
   const salByCat = new Map(employeeCostByCategory(payslip).map((c) => [c.category, c.euro]));
 
+  const hint = result.summary.periodCovered
+    ? `taux comparés au barème ${result.summary.referenceYear}`
+    : 'explications — taux non comparés';
+
   return (
     <Card>
-      <SectionTitle hint="taux comparés au barème 2026">Cotisations, ligne par ligne</SectionTitle>
-      <div className="space-y-5">
+      <SectionTitle hint={hint}>Cotisations, ligne par ligne</SectionTitle>
+      <div className="space-y-3">
         {ORDER.filter((c) => grouped.has(c)).map((cat) => {
           const salTotal = salByCat.get(cat) ?? 0;
+          const lines = grouped.get(cat)!;
+          const hasIssue = lines.some((line) =>
+            line.canonical &&
+            findingByCanonical
+              .get(line.canonical)
+              ?.some((f) => f.severity === 'erreur' || f.severity === 'avertissement'),
+          );
           return (
-          <section key={cat}>
-            <div className="mb-1 flex items-baseline justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 text-sm font-bold">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: CAT_COLOR[cat] }}
-                  aria-hidden="true"
-                />
-                {CATEGORY_EXPLAIN[cat].title}
-              </h3>
-              {salTotal > 0 && (
-                <span className="shrink-0 text-xs tabular-nums text-muted">
-                  {formatEuro(salTotal)} ce mois
+            <details key={cat} className="group" open={hasIssue}>
+              <summary className="flex cursor-pointer list-none items-baseline justify-between gap-2 rounded-lg py-1 hover:surface-2">
+                <h3 className="flex items-center gap-1.5 text-sm font-bold">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: CAT_COLOR[cat] }}
+                    aria-hidden="true"
+                  />
+                  {CATEGORY_EXPLAIN[cat].title}
+                  {hasIssue && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                  )}
+                </h3>
+                <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums text-muted">
+                  {salTotal > 0 && `${formatEuro(salTotal)} ce mois`}
+                  <ChevronDown
+                    size={14}
+                    className="shrink-0 transition-transform group-open:rotate-180"
+                  />
                 </span>
-              )}
-            </div>
-            <p className="mb-2 text-xs text-muted">{CATEGORY_EXPLAIN[cat].summary}</p>
-            <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))]">
-              {grouped.get(cat)!.map((line, i) => (
-                <LineRow
-                  key={i}
-                  line={line}
-                  ctx={ctx}
-                  findings={line.canonical ? (findingByCanonical.get(line.canonical) ?? []) : []}
-                />
-              ))}
-            </div>
-          </section>
+              </summary>
+              <p className="mb-2 mt-1 text-xs text-muted">{CATEGORY_EXPLAIN[cat].summary}</p>
+              <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))]">
+                {lines.map((line, i) => (
+                  <LineRow
+                    key={i}
+                    line={line}
+                    ctx={ctx}
+                    verified={result.summary.periodCovered}
+                    findings={line.canonical ? (findingByCanonical.get(line.canonical) ?? []) : []}
+                  />
+                ))}
+              </div>
+            </details>
           );
         })}
       </div>
@@ -82,10 +99,12 @@ function LineRow({
   line,
   ctx,
   findings,
+  verified,
 }: {
   line: ContributionLine;
   ctx: ReturnType<typeof buildContext>;
   findings: Finding[];
+  verified: boolean;
 }) {
   const ref = line.canonical ? rateByCode(line.canonical) : undefined;
   const explain = explainOf(line.canonical);
@@ -100,7 +119,15 @@ function LineRow({
     <details className="group border-b border-[rgb(var(--border))] last:border-b-0 open:surface-2">
       <summary className="flex cursor-pointer list-none items-center gap-2 p-3 text-sm hover:surface-2">
         <span className="shrink-0">
-          {worst ? <SeverityIcon severity={worst.severity} /> : line.canonical ? <OkIcon /> : <span className="inline-block h-4 w-4" />}
+          {worst ? (
+            <SeverityIcon severity={worst.severity} />
+          ) : verified && line.canonical ? (
+            <OkIcon />
+          ) : line.canonical ? (
+            <span className="mx-0.5 inline-block h-1.5 w-1.5 rounded-full bg-[rgb(var(--text-muted))]" />
+          ) : (
+            <span className="inline-block h-4 w-4" />
+          )}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{ref?.label ?? line.label}</span>

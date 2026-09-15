@@ -27,7 +27,7 @@ if (!key || key.startsWith('sk-ant-...') || key.length < 30) {
 console.log(`clé       : ${mask}`);
 
 const file = process.argv[2] ?? 'public/exemple-bulletin.pdf';
-console.log(`Modèle : ${process.env.PAYLUMO_MODEL ?? 'claude-opus-5 (défaut)'}`);
+console.log(`Modèle : ${process.env.PAYLUMO_MODEL ?? 'claude-sonnet-5 (défaut)'}`);
 console.log(`Bulletin : ${file}\n`);
 
 const { extractWithClaude } = await import('../server/claude.ts');

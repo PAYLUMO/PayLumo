@@ -7,6 +7,7 @@ import { CotisationDetailPage } from '@/features/explain/CotisationDetailPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ComparatorPage } from '@/features/comparator/ComparatorPage';
+import { MentionsLegales, Confidentialite, Conditions } from '@/features/legal/LegalPage';
 import { NotFoundPage } from '@/app/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -21,6 +22,9 @@ export const router = createBrowserRouter([
       { path: 'cotisation/:code', element: <CotisationDetailPage /> },
       { path: 'historique', element: <HistoryPage /> },
       { path: 'parametres', element: <SettingsPage /> },
+      { path: 'mentions-legales', element: <MentionsLegales /> },
+      { path: 'confidentialite', element: <Confidentialite /> },
+      { path: 'conditions', element: <Conditions /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

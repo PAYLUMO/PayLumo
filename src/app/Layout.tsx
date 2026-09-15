@@ -31,7 +31,7 @@ export function Layout() {
     <div className="mx-auto flex min-h-full max-w-3xl flex-col">
       <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-[rgb(var(--bg))] px-4 py-3">
         <NavLink to="/" aria-label="Accueil PayLumo">
-          <BrandLockup />
+          <BrandLockup className="h-11" />
         </NavLink>
         <div className="flex items-center gap-1">
           <nav className="hidden gap-1 sm:flex">
@@ -63,11 +63,24 @@ export function Layout() {
       </main>
 
       <footer className="mb-16 border-t px-4 py-3 text-center text-xs text-muted sm:mb-0">
-        <Link to="/parametres" className="hover:underline">
-          Réglages
-        </Link>
-        <span className="mx-1.5">·</span>
-        PayLumo — barème 2026
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <Link to="/parametres" className="hover:underline">
+            Réglages
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/mentions-legales" className="hover:underline">
+            Mentions légales
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/confidentialite" className="hover:underline">
+            Confidentialité
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/conditions" className="hover:underline">
+            Conditions
+          </Link>
+        </div>
+        <p className="mt-1">PayLumo — barème 2026</p>
       </footer>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t bg-[rgb(var(--bg))] sm:hidden">

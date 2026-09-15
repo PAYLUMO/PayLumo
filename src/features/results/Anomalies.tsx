@@ -1,11 +1,16 @@
 import { formatSignedEuro } from '@shared/lib/money';
 import { Card, SectionTitle } from '@/components/ui';
 import type { AnalysisResult } from '@shared/analysis/findings';
+import { isBatimentTP } from '@shared/data/conventions';
 import { OkIcon, SeverityBadge } from './shared';
 
 export function Anomalies({ result }: { result: AnalysisResult }) {
   const actionable = result.findings.filter((f) => f.severity !== 'info');
-  const infos = result.findings.filter((f) => f.severity === 'info');
+  const infos = result.findings.filter(
+    (f) => f.severity === 'info' && f.code !== 'PERIODE_NON_COUVERTE',
+  );
+  const { periodCovered, referenceYear, conventionLabel, conventionSource } = result.summary;
+  const isBTP = isBatimentTP(conventionLabel);
 
   return (
     <Card>
@@ -16,14 +21,40 @@ export function Anomalies({ result }: { result: AnalysisResult }) {
       {actionable.length === 0 ? (
         <div className="flex items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm dark:bg-brand-950/40">
           <OkIcon size={18} />
-          Rien d’anormal sur les points vérifiés (taux 2026, calculs, cohérence brut → net).
+          {periodCovered
+            ? `Rien d’anormal sur les points vérifiés (taux ${referenceYear}, calculs, cohérence brut → net).`
+            : 'Rien d’anormal sur ce qui a pu être vérifié (calculs internes, cohérence brut → net). Les taux n’ont pas été comparés.'}
         </div>
       ) : (
         <>
-          <p className="mb-3 text-sm text-muted">
-            Rien d’alarmant ici. Ces points méritent juste une question à votre service paie, qui
-            pourra vous les expliquer.
-          </p>
+          <div className="mb-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3 text-sm text-muted">
+            <strong className="text-[rgb(var(--text))]">Un écart n’est pas forcément une erreur.</strong>{' '}
+            PayLumo compare uniquement au <strong className="text-[rgb(var(--text))]">barème légal
+            {' '}{referenceYear}</strong> ;{' '}
+            {conventionLabel ? (
+              <>
+                {conventionSource === 'detected'
+                  ? 'la convention collective détectée sur ce bulletin'
+                  : 'la convention collective que vous avez indiquée'}
+                {' — '}
+                <strong className="text-[rgb(var(--text))]">{conventionLabel}</strong> —{' '}
+              </>
+            ) : (
+              'votre convention collective ou un accord d’entreprise '
+            )}
+            peut prévoir d’autres règles, parfaitement valables
+            {isBTP ? (
+              <>
+                {' '}(dans le BTP, un abattement pour frais professionnels — jusqu’à 10 % — est
+                parfois appliqué sur autorisation de l’employeur, ce qui peut aussi expliquer un
+                écart d’assiette)
+              </>
+            ) : (
+              ' (par exemple l’abattement pour frais professionnels dans le BTP)'
+            )}
+            . Ces points sont là pour être <em>expliqués</em> — pour les confirmer, voyez avec votre{' '}
+            <strong>gestionnaire de paie</strong> ou un <strong>expert-comptable</strong>.
+          </div>
           <ul className="space-y-3">
             {actionable.map((f) => (
               <li

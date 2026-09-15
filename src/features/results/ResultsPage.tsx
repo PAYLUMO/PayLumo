@@ -63,10 +63,9 @@ export function ResultsPage() {
       )}
 
       <Card className="surface-2 text-xs text-muted">
-        Analyse indicative fondée sur les barèmes publics 2026 (URSSAF, BOSS, Agirc-Arrco). Le but
-        est de vous aider à comprendre votre fiche — pour toute précision, votre service paie ou un
-        expert-comptable reste le bon interlocuteur. PayLumo peut se tromper si une ligne du
-        bulletin a été mal lue.
+        Analyse <strong>indicative</strong> : PayLumo explique votre fiche et compare les taux au
+        barème légal 2026 (URSSAF, BOSS, Agirc-Arrco). Elle peut comporter des imprécisions si une
+        ligne a été mal lue, et ne remplace pas votre gestionnaire de paie ou un expert-comptable.
       </Card>
 
       <div className="flex justify-center pb-4">

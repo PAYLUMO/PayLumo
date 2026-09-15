@@ -42,3 +42,4 @@ coverage
 
 # TS build info
 *.tsbuildinfo
+/public/standard_fonts/

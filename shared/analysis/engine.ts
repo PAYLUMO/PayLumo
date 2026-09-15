@@ -1,4 +1,5 @@
 import type { Payslip } from '../parsing/model';
+import { REFERENCE_YEAR } from '../data/params';
 import { buildContext } from './context';
 import { CHECKS } from './checks';
 import {
@@ -9,7 +10,10 @@ import {
 } from './findings';
 
 export interface AnalyzeOptions {
+  /** année du référentiel de taux (défaut : la seule disponible). */
   year?: number;
+  /** libellé de convention choisi explicitement par l'utilisateur ; sinon détecté sur le bulletin. */
+  conventionLabel?: string | null;
 }
 
 /**
@@ -21,7 +25,17 @@ export interface AnalyzeOptions {
  * un constat `LECTURE_INCOMPLETE`.
  */
 export function analyzePayslip(payslip: Payslip, opts: AnalyzeOptions = {}): AnalysisResult {
-  const ctx = buildContext(payslip, opts.year ?? 2026);
+  const ctx = buildContext(payslip, opts.year ?? REFERENCE_YEAR, {
+    userConvention: opts.conventionLabel,
+  });
+  const summaryOpts = {
+    periodCovered: ctx.periodCovered,
+    referenceYear: ctx.referenceYear,
+    periodYear: ctx.periodYear,
+    conventionIdcc: ctx.conventionIdcc,
+    conventionLabel: ctx.conventionLabel,
+    conventionSource: ctx.conventionSource,
+  };
 
   const canAnalyze =
     payslip.gross.value > 0 &&
@@ -44,11 +58,28 @@ export function analyzePayslip(payslip: Payslip, opts: AnalyzeOptions = {}): Ana
     };
     return {
       findings: [finding],
-      summary: summarize([finding], payslip.meta.parseConfidence, false),
+      summary: summarize([finding], payslip.meta.parseConfidence, false, summaryOpts),
     };
   }
 
   const findings: Finding[] = [];
+
+  // Bulletin d'une autre année que le référentiel : lecture seule, pas de
+  // comparaison de taux (les contrôles concernés se coupent via ctx.periodCovered).
+  if (!ctx.periodCovered && ctx.periodYear != null) {
+    findings.push({
+      id: 'periode:hors-referentiel',
+      code: 'PERIODE_NON_COUVERTE',
+      severity: 'info',
+      scope: 'GENERAL',
+      title: `Bulletin ${ctx.periodYear} — taux non comparés`,
+      detail:
+        `PayLumo ne connaît que le barème légal ${ctx.referenceYear}. Pour un bulletin de ${ctx.periodYear}, ` +
+        'seules la lecture du bulletin, la décomposition du salaire et les explications sont affichées ; ' +
+        'les taux, les assiettes et le SMIC ne sont pas vérifiés.',
+    });
+  }
+
   for (const check of CHECKS) {
     try {
       findings.push(...check(ctx));
@@ -71,6 +102,6 @@ export function analyzePayslip(payslip: Payslip, opts: AnalyzeOptions = {}): Ana
 
   return {
     findings: unique,
-    summary: summarize(unique, payslip.meta.parseConfidence, true),
+    summary: summarize(unique, payslip.meta.parseConfidence, true, summaryOpts),
   };
 }

@@ -68,14 +68,13 @@ export const RawExtraction = z.object({
 
   employer: z.object({
     name: z.string().nullable(),
-    siret: z.string().nullable(),
-    naf: z.string().nullable(),
     convention: z.string().nullable(),
     headcount: z.number().int().nullable(),
   }),
 
+  // Aucune donnée identifiant le salarié n'est demandée : ni nom, ni adresse, ni
+  // n° de sécurité sociale, ni matricule. Le modèle les voit mais ne les ressort pas.
   employee: z.object({
-    matricule: z.string().nullable(),
     jobTitle: z.string().nullable(),
     status: z.enum(['cadre', 'non-cadre', 'inconnu']),
     coefficient: z.string().nullable(),
@@ -88,7 +87,15 @@ export const RawExtraction = z.object({
   grossItems: z.array(RawGrossItem),
   gross: num,
 
+  /**
+   * UNIQUEMENT des cotisations individuelles : ni ligne de total/sous-total, ni
+   * intitulé de rubrique seul, ni ligne de récap, ni exonération globale.
+   */
   contributions: z.array(RawContribution),
+  /** Ligne « Total des cotisations et contributions » du bulletin, si présente. */
+  contributionsTotal: z.object({ employee: num, employer: num }).nullable(),
+  /** Montant de la ligne « Coût total employeur » / « Coût global », si affichée. */
+  employerCost: num,
 
   netTaxable: num,
   netSocial: num,
@@ -101,6 +108,7 @@ export const RawExtraction = z.object({
     .object({
       gross: num,
       netTaxable: num,
+      netSocial: num,
       incomeTax: num,
       hours: num,
     })

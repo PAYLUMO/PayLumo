@@ -11,6 +11,7 @@
 
 import { parseFrNumber, looksNumeric, roundCents } from '../lib/money';
 import { matchCanonical, normalizeLabel } from '../data/taxonomy';
+import { isSummaryOrHeaderLabel } from './summaryLabels';
 import type { Cell, PdfDocumentText, TextLine } from './pdf-core';
 import {
   valued,
@@ -208,12 +209,10 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
   const regime = inferRegime(lines);
 
   // ── En-tête ────────────────────────────────────────────────────────────────
-  const siret = firstMatch(lines, /siret\s*:?\s*([\d   ]{9,20})/i)?.[1]?.replace(/\s/g, '');
-  const naf = firstMatch(lines, /(?:code\s*)?(?:ape|naf)\s*:?\s*(\d{3,4}\s?[a-z])/i)?.[1]?.replace(/\s/g, '').toUpperCase();
+  // Aucune donnée identifiant le salarié n'est extraite (nom, adresse, n° SS, matricule).
   const convention = firstMatch(lines, /convention collective\s*:?\s*(.+)/i)?.[1]?.trim();
   const effectifRaw = firstMatch(lines, /effectif\s*:?\s*(\d{1,6})/i)?.[1];
   const effectif = effectifRaw ? Number(effectifRaw) : undefined;
-  const matricule = firstMatch(lines, /matricule\s*:?\s*([A-Za-z0-9._-]{2,20})/i)?.[1];
   const emploi = firstMatch(lines, /emploi\s*:?\s*([^:¦]+?)(?:\s{2,}|statut|coefficient|niveau|$)/i)?.[1]?.trim();
   const coefficient = firstMatch(lines, /coefficient\s*:?\s*([A-Za-z0-9. -]{1,20})/i)?.[1]?.trim();
   const dateEntree = firstMatch(lines, /(?:date d['e ]entr[ée]e|anciennet[ée]|entr[ée]e le)\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i)?.[1];
@@ -260,6 +259,15 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
       const nums = assignNumbers(line.cells, columns);
       if (nums.amtEmp != null || nums.loose[0] != null) summary.totalSal = { amount: nums.amtEmp ?? nums.loose[0] };
       if (nums.amtPat != null) summary.totalPat = { amount: nums.amtPat };
+      continue;
+    }
+
+    // coût total employeur (souvent la toute dernière ligne)
+    if (/^co[uû]t (total|global)\s+(employeur|du poste|patronal)|^co[uû]t global\b/i.test(norm)) {
+      const nums = assignNumbers(line.cells, columns);
+      const amt = nums.amtEmp ?? nums.amtPat ?? nums.base ?? nums.loose.at(-1) ?? nums.loose[0];
+      if (amt != null) summary.coutEmployeur = { amount: amt };
+      phase = 'summary';
       continue;
     }
 
@@ -315,6 +323,16 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
     }
 
     if (phase === 'cotisations') {
+      // total / sous-total / intitulé de rubrique / exonération globale glissé
+      // dans le corps : on ne le compte pas comme une cotisation.
+      if (
+        isSummaryOrHeaderLabel(
+          label,
+          nums.rateEmp != null || nums.ratePat != null,
+          nums.amtEmp != null || nums.amtPat != null,
+        )
+      )
+        continue;
       const cat = currentSection ?? guessCategory(label);
       const entry = matchCanonical(label, { section: cat ?? undefined, statut, regime });
       const c: ContributionLine = {
@@ -391,13 +409,10 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
     },
     employer: {
       name: employerName || undefined,
-      siret,
-      naf,
       convention,
       effectifTranche: effectif == null ? 'inconnu' : effectif < 50 ? 'lt50' : 'gte50',
     },
     employee: {
-      matricule,
       emploi,
       statut,
       regime,
@@ -415,6 +430,21 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
     grossItems,
     gross: gross != null ? valued(gross, 0.9) : valued(0, 0),
     contributions,
+    contributionsTotal:
+      summary.totalSal?.amount != null || summary.totalPat?.amount != null
+        ? {
+            employee:
+              summary.totalSal?.amount != null
+                ? valued(Math.abs(summary.totalSal.amount), 0.75)
+                : undefined,
+            employer:
+              summary.totalPat?.amount != null
+                ? valued(Math.abs(summary.totalPat.amount), 0.75)
+                : undefined,
+          }
+        : undefined,
+    employerCost:
+      summary.coutEmployeur?.amount != null ? valued(summary.coutEmployeur.amount, 0.8) : undefined,
     csgCrds,
     adjustments: [],
     netImposable: summary.netImposable?.amount != null ? valued(summary.netImposable.amount, 0.85) : undefined,

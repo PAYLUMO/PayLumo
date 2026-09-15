@@ -1,7 +1,7 @@
 /**
- * Pré-contrôle local et gratuit d'un PDF avant paiement : on vérifie que le
+ * Pré-contrôle local d'un PDF avant l'envoi au serveur : on vérifie que le
  * fichier a une couche texte et ressemble à un bulletin de paie. Aucune analyse
- * n'est révélée — juste un feu vert / rouge pour éviter de facturer un fichier
+ * n'est révélée — juste un feu vert / rouge pour éviter d'envoyer un fichier
  * inexploitable.
  */
 

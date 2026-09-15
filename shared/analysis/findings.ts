@@ -1,4 +1,5 @@
 import type { ContribCategory } from '../parsing/model';
+import { REFERENCE_YEAR } from '../data/params';
 
 export type Severity = 'erreur' | 'avertissement' | 'info';
 
@@ -15,6 +16,7 @@ export type FindingCode =
   | 'PAS_INCOHERENT'
   | 'SMIC_NON_RESPECTE'
   | 'PLAFOND_DEPASSE'
+  | 'PERIODE_NON_COUVERTE'
   | 'LECTURE_INCOMPLETE';
 
 export type FindingScope = ContribCategory | 'BRUT' | 'NET' | 'GENERAL';
@@ -47,6 +49,18 @@ export interface AnalysisSummary {
   readConfidence: number;
   /** false ⇒ extraction trop incomplète pour analyser. */
   canAnalyze: boolean;
+  /** année du référentiel de taux utilisé. */
+  referenceYear: number;
+  /** false ⇒ le bulletin n'est pas de l'année du référentiel : taux non comparés. */
+  periodCovered: boolean;
+  /** année lue sur le bulletin quand elle diffère du référentiel, sinon null. */
+  periodYear: number | null;
+  /** code IDCC retenu (choisi par l'utilisateur ou détecté sur le bulletin), sinon null. */
+  conventionIdcc: number | null;
+  /** libellé de la convention retenue, sinon null. */
+  conventionLabel: string | null;
+  /** d'où vient la convention retenue. */
+  conventionSource: 'user' | 'detected' | 'none';
 }
 
 export interface AnalysisResult {
@@ -64,7 +78,19 @@ export function sortFindings(findings: Finding[]): Finding[] {
   });
 }
 
-export function summarize(findings: Finding[], readConfidence: number, canAnalyze: boolean): AnalysisSummary {
+export function summarize(
+  findings: Finding[],
+  readConfidence: number,
+  canAnalyze: boolean,
+  opts: {
+    periodCovered?: boolean;
+    referenceYear?: number;
+    periodYear?: number | null;
+    conventionIdcc?: number | null;
+    conventionLabel?: string | null;
+    conventionSource?: 'user' | 'detected' | 'none';
+  } = {},
+): AnalysisSummary {
   const severityCounts: Record<Severity, number> = { erreur: 0, avertissement: 0, info: 0 };
   let netImpactEuro = 0;
   for (const f of findings) {
@@ -76,5 +102,11 @@ export function summarize(findings: Finding[], readConfidence: number, canAnalyz
     netImpactEuro: Math.round(netImpactEuro * 100) / 100,
     readConfidence,
     canAnalyze,
+    referenceYear: opts.referenceYear ?? REFERENCE_YEAR,
+    periodCovered: opts.periodCovered ?? true,
+    periodYear: opts.periodYear ?? null,
+    conventionIdcc: opts.conventionIdcc ?? null,
+    conventionLabel: opts.conventionLabel ?? null,
+    conventionSource: opts.conventionSource ?? 'none',
   };
 }

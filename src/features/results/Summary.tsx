@@ -7,20 +7,31 @@ import { ConfidencePill, OkIcon, SeverityIcon } from './shared';
 
 export function Summary({ analysis }: { analysis: StoredAnalysis }) {
   const { result, payslip, label } = analysis;
-  const { severityCounts, netImpactEuro, canAnalyze } = result.summary;
+  const {
+    severityCounts,
+    netImpactEuro,
+    canAnalyze,
+    periodCovered,
+    referenceYear,
+    periodYear,
+    conventionLabel,
+    conventionSource,
+  } = result.summary;
   const nAnom = severityCounts.erreur;
   const nCheck = severityCounts.avertissement;
 
   const headline = !canAnalyze
     ? 'Lecture incomplète'
-    : nAnom > 0
-      ? `${nAnom} anomalie${nAnom > 1 ? 's' : ''} repérée${nAnom > 1 ? 's' : ''}`
-      : nCheck > 0
-        ? `${nCheck} point${nCheck > 1 ? 's' : ''} à vérifier`
-        : 'Aucune anomalie repérée';
+    : !periodCovered
+      ? `Bulletin ${periodYear ?? ''} — lecture seule`
+      : nAnom > 0
+        ? `${nAnom} anomalie${nAnom > 1 ? 's' : ''} repérée${nAnom > 1 ? 's' : ''}`
+        : nCheck > 0
+          ? `${nCheck} point${nCheck > 1 ? 's' : ''} à vérifier`
+          : 'Aucune anomalie repérée';
 
   // Palette apaisée : ambre pour une anomalie (jamais rouge), vert quand tout va bien.
-  const tone = !canAnalyze
+  const tone = !canAnalyze || !periodCovered
     ? 'surface-2'
     : nAnom > 0 || nCheck > 0
       ? 'border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25'
@@ -39,7 +50,11 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
           <h1 className="mt-1 flex items-center gap-2 text-lg font-extrabold sm:text-xl">
-            {canAnalyze && nAnom === 0 && nCheck === 0 ? (
+            {!canAnalyze ? (
+              <SeverityIcon severity="avertissement" size={22} />
+            ) : !periodCovered ? (
+              <SeverityIcon severity="info" size={22} />
+            ) : nAnom === 0 && nCheck === 0 ? (
               <OkIcon size={22} />
             ) : (
               <SeverityIcon severity={nAnom > 0 ? 'erreur' : 'avertissement'} size={22} />
@@ -59,7 +74,7 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
         </div>
       </div>
 
-      {canAnalyze && (
+      {canAnalyze && periodCovered && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <Stat n={nAnom} label="Anomalies" tone="text-amber-600 dark:text-amber-400" />
           <Stat n={nCheck} label="À vérifier" tone="text-sky-600 dark:text-sky-400" />
@@ -72,18 +87,30 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
         </div>
       )}
 
+      {canAnalyze && !periodCovered && (
+        <p className="mt-4 rounded-xl surface-2 p-3 text-sm text-muted">
+          PayLumo ne compare les taux qu’au <strong>barème légal {referenceYear}</strong>. Ce
+          bulletin est de <strong>{periodYear}</strong> : vous avez la lecture complète, la
+          décomposition du salaire et l’explication de chaque cotisation, mais{' '}
+          <strong>les taux ne sont pas vérifiés</strong>.
+        </p>
+      )}
+
       <p className="mt-4 text-xs text-muted">
-        {nAnom > 0
-          ? 'Rien d’alarmant : le plus souvent, une question au service paie suffit à clarifier. '
-          : ''}
         Bulletin : {payslip.employee.emploi ?? 'poste non lu'} ·{' '}
         {payslip.employee.statut === 'inconnu' ? 'statut non lu' : payslip.employee.statut}
         {payslip.employee.regime === 'alsace-moselle' ? ' · Alsace-Moselle' : ''} · barème{' '}
         <Link to="/parametres" className="underline">
-          2026
+          {referenceYear}
         </Link>
         .
       </p>
+      {conventionLabel && (
+        <p className="mt-1 text-xs text-muted">
+          Convention collective : <strong className="text-[rgb(var(--text))]">{conventionLabel}</strong>
+          {conventionSource === 'detected' ? ' (détectée sur le bulletin)' : ' (renseignée par vous)'}
+        </p>
+      )}
     </Card>
   );
 }

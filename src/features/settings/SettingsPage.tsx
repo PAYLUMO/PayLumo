@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { CreditCard } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { Card, SectionTitle, Button } from '@/components/ui';
 import { useTheme } from '@/app/theme';
 import { PASS, PMSS, REFERENCE_YEAR, SMIC_2026 } from '@shared/data/params';
 import { formatEuro } from '@shared/lib/money';
 import { clearAllAnalyses, listAnalyses } from '@/lib/storage';
-
-const PRICE = 0.99;
 
 export function SettingsPage() {
   const { mode, setMode } = useTheme();
@@ -49,17 +47,13 @@ export function SettingsPage() {
 
       <Card>
         <h3 className="flex items-center gap-1.5 font-semibold">
-          <CreditCard size={16} className="text-brand-600 dark:text-brand-400" />
-          Paiement
+          <KeyRound size={16} className="text-brand-600 dark:text-brand-400" />
+          Accès
         </h3>
         <p className="mt-1 text-sm text-muted">
-          {formatEuro(PRICE)} par analyse, paiement unique — pas d’abonnement, pas de compte.
-          Transactions gérées par <strong className="text-[rgb(var(--text))]">Stripe</strong> ;
-          PayLumo ne voit jamais votre numéro de carte.
-        </p>
-        <p className="mt-2 text-sm text-muted">
-          <strong className="text-[rgb(var(--text))]">Remboursement.</strong> Si votre bulletin
-          n’a pas pu être lu (scan, format non reconnu), le paiement est automatiquement remboursé.
+          L’analyse est réservée aux personnes disposant d’un <strong className="text-[rgb(var(--text))]">code d’accès</strong>,
+          demandé au moment de lancer l’analyse — sans compte ni paiement. Le comparateur de
+          salaire et l’exemple d’analyse restent librement accessibles.
         </p>
       </Card>
 
@@ -102,11 +96,15 @@ export function SettingsPage() {
       <Card className="surface-2 text-xs text-muted">
         <p className="font-semibold text-[rgb(var(--text))]">Avertissement</p>
         <p className="mt-1">
-          PayLumo fournit une analyse <strong>indicative</strong> à partir de barèmes publics, pour
-          vous aider à comprendre votre fiche de paie. Elle ne constitue pas un conseil juridique,
-          comptable ou fiscal et peut comporter des imprécisions (notamment si une ligne a été mal
-          lue). Pour toute précision, votre service paie ou un expert-comptable est le bon
-          interlocuteur.
+          PayLumo fournit une analyse <strong>indicative</strong> : elle explique chaque cotisation
+          et compare les taux au <strong>barème légal 2026</strong>. Un écart signalé n’est pas
+          forcément une anomalie — une <strong>convention collective</strong> ou un{' '}
+          <strong>accord d’entreprise</strong> peut fixer des règles différentes, parfaitement
+          conformes (abattement BTP, taux de branche, prévoyance spécifique…), que PayLumo ne
+          connaît pas. L’analyse peut aussi comporter des imprécisions si une ligne a été mal lue.
+          Elle ne constitue pas un conseil juridique, comptable ou fiscal : pour toute confirmation,
+          adressez-vous à votre <strong>gestionnaire de paie</strong> ou à un{' '}
+          <strong>expert-comptable</strong>.
         </p>
       </Card>
     </div>

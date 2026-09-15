@@ -1,17 +1,17 @@
 {
   "isPayslip": true,
   "editorGuess": null,
-  "period": { "month": 6, "year": 2026 },
+  "period": {
+    "month": 6,
+    "year": 2026
+  },
   "payDate": "30/06/2026",
   "employer": {
     "name": "ACME TECH SARL",
-    "siret": "12345678900012",
-    "naf": "6201Z",
     "convention": "SYNTEC (IDCC 1486)",
     "headcount": 24
   },
   "employee": {
-    "matricule": "00427",
     "jobTitle": "Développeur",
     "status": "cadre",
     "coefficient": "100 - Position 2.1",
@@ -21,34 +21,185 @@
     "contractHours": 151.67
   },
   "grossItems": [
-    { "label": "Salaire de base", "kind": "base", "base": 151.67, "rate": null, "amount": 3500.0 },
-    { "label": "Prime d'ancienneté", "kind": "prime", "base": null, "rate": null, "amount": 150.0 },
-    { "label": "Absence maladie (3 j)", "kind": "absence", "base": -21.0, "rate": null, "amount": -161.54 }
+    {
+      "label": "Salaire de base",
+      "kind": "base",
+      "base": 151.67,
+      "rate": null,
+      "amount": 3500
+    },
+    {
+      "label": "Prime d'ancienneté",
+      "kind": "prime",
+      "base": null,
+      "rate": null,
+      "amount": 150
+    },
+    {
+      "label": "Absence maladie (3 j)",
+      "kind": "absence",
+      "base": -21,
+      "rate": null,
+      "amount": -161.54
+    }
   ],
   "gross": 3488.46,
   "contributions": [
-    { "label": "Sécurité sociale - Maladie Maternité Invalidité Décès", "section": "SANTE", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 7.0, "employerAmount": 244.19 },
-    { "label": "Complémentaire santé", "section": "SANTE", "base": 45.0, "employeeRate": null, "employeeAmount": 18.0, "employerRate": null, "employerAmount": 27.0 },
-    { "label": "Prévoyance cadres tranche A", "section": "SANTE", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 1.5, "employerAmount": 52.33 },
-    { "label": "Accident du travail", "section": "ATMP", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 1.2, "employerAmount": 41.86 },
-    { "label": "Sécurité sociale plafonnée", "section": "RETRAITE", "base": 3488.46, "employeeRate": 6.9, "employeeAmount": 240.7, "employerRate": 8.55, "employerAmount": 298.26 },
-    { "label": "Sécurité sociale déplafonnée", "section": "RETRAITE", "base": 3488.46, "employeeRate": 0.4, "employeeAmount": 13.95, "employerRate": 2.11, "employerAmount": 73.61 },
-    { "label": "Complémentaire tranche 1", "section": "RETRAITE", "base": 3488.46, "employeeRate": 3.15, "employeeAmount": 109.89, "employerRate": 4.72, "employerAmount": 164.66 },
-    { "label": "CEG tranche 1", "section": "RETRAITE", "base": 3488.46, "employeeRate": 0.86, "employeeAmount": 30.0, "employerRate": 1.29, "employerAmount": 45.0 },
-    { "label": "Allocations familiales", "section": "FAMILLE", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 3.45, "employerAmount": 120.35 },
-    { "label": "Assurance chômage", "section": "CHOMAGE", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 4.0, "employerAmount": 139.54 },
-    { "label": "AGS", "section": "CHOMAGE", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 0.25, "employerAmount": 8.72 },
-    { "label": "APEC", "section": "CHOMAGE", "base": 3488.46, "employeeRate": 0.024, "employeeAmount": 0.84, "employerRate": 0.036, "employerAmount": 1.26 },
-    { "label": "Contribution solidarité autonomie", "section": "AUTRES", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 0.3, "employerAmount": 10.47 },
-    { "label": "FNAL", "section": "AUTRES", "base": 3488.46, "employeeRate": null, "employeeAmount": null, "employerRate": 0.1, "employerAmount": 3.49 },
-    { "label": "CSG déductible de l'impôt sur le revenu", "section": "CSG_CRDS", "base": 3454.41, "employeeRate": 6.8, "employeeAmount": 234.9, "employerRate": null, "employerAmount": null },
-    { "label": "CSG/CRDS non déductible de l'impôt sur le revenu", "section": "CSG_CRDS", "base": 3454.41, "employeeRate": 2.9, "employeeAmount": 100.18, "employerRate": null, "employerAmount": null }
+    {
+      "label": "Sécurité sociale - Maladie Maternité Invalidité Décès",
+      "section": "SANTE",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 7,
+      "employerAmount": 244.19
+    },
+    {
+      "label": "Complémentaire santé",
+      "section": "SANTE",
+      "base": 45,
+      "employeeRate": null,
+      "employeeAmount": 18,
+      "employerRate": null,
+      "employerAmount": 27
+    },
+    {
+      "label": "Prévoyance cadres tranche A",
+      "section": "SANTE",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 1.5,
+      "employerAmount": 52.33
+    },
+    {
+      "label": "Accident du travail",
+      "section": "ATMP",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 1.2,
+      "employerAmount": 41.86
+    },
+    {
+      "label": "Sécurité sociale plafonnée",
+      "section": "RETRAITE",
+      "base": 3488.46,
+      "employeeRate": 6.9,
+      "employeeAmount": 240.7,
+      "employerRate": 8.55,
+      "employerAmount": 298.26
+    },
+    {
+      "label": "Sécurité sociale déplafonnée",
+      "section": "RETRAITE",
+      "base": 3488.46,
+      "employeeRate": 0.4,
+      "employeeAmount": 13.95,
+      "employerRate": 2.11,
+      "employerAmount": 73.61
+    },
+    {
+      "label": "Complémentaire tranche 1",
+      "section": "RETRAITE",
+      "base": 3488.46,
+      "employeeRate": 3.15,
+      "employeeAmount": 109.89,
+      "employerRate": 4.72,
+      "employerAmount": 164.66
+    },
+    {
+      "label": "CEG tranche 1",
+      "section": "RETRAITE",
+      "base": 3488.46,
+      "employeeRate": 0.86,
+      "employeeAmount": 30,
+      "employerRate": 1.29,
+      "employerAmount": 45
+    },
+    {
+      "label": "Allocations familiales",
+      "section": "FAMILLE",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 3.45,
+      "employerAmount": 120.35
+    },
+    {
+      "label": "Assurance chômage",
+      "section": "CHOMAGE",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 4,
+      "employerAmount": 139.54
+    },
+    {
+      "label": "AGS",
+      "section": "CHOMAGE",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 0.25,
+      "employerAmount": 8.72
+    },
+    {
+      "label": "APEC",
+      "section": "CHOMAGE",
+      "base": 3488.46,
+      "employeeRate": 0.024,
+      "employeeAmount": 0.84,
+      "employerRate": 0.036,
+      "employerAmount": 1.26
+    },
+    {
+      "label": "Contribution solidarité autonomie",
+      "section": "AUTRES",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 0.3,
+      "employerAmount": 10.47
+    },
+    {
+      "label": "FNAL",
+      "section": "AUTRES",
+      "base": 3488.46,
+      "employeeRate": null,
+      "employeeAmount": null,
+      "employerRate": 0.1,
+      "employerAmount": 3.49
+    },
+    {
+      "label": "CSG déductible de l'impôt sur le revenu",
+      "section": "CSG_CRDS",
+      "base": 3454.41,
+      "employeeRate": 6.8,
+      "employeeAmount": 234.9,
+      "employerRate": null,
+      "employerAmount": null
+    },
+    {
+      "label": "CSG/CRDS non déductible de l'impôt sur le revenu",
+      "section": "CSG_CRDS",
+      "base": 3454.41,
+      "employeeRate": 2.9,
+      "employeeAmount": 100.18,
+      "employerRate": null,
+      "employerAmount": null
+    }
   ],
+  "contributionsTotal": {
+    "employee": 748.46,
+    "employer": 1230.74
+  },
+  "employerCost": 4719.2,
   "netTaxable": 2867.18,
-  "netSocial": 2740.0,
+  "netSocial": 2740,
   "incomeTaxRate": 3.8,
   "incomeTaxAmount": -108.95,
-  "netBeforeTax": 2740.0,
+  "netBeforeTax": 2740,
   "netPaid": 2631.05,
   "cumuls": null
 }

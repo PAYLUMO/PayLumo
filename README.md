@@ -4,21 +4,23 @@ Analyse de bulletin de paie français : décompose le salaire, explique chaque
 cotisation et repère les erreurs potentielles en comparant les taux au **barème
 légal 2026**.
 
-- **Analyse à l'unité — 0,99 €**, paiement Stripe, sans compte ni abonnement.
+- **Analyse débloquée par un code d'accès** (`PAYLUMO_ACCESS_CODE`, défaut
+  `ASSIATA`), sans compte ni paiement.
 - **Import PDF uniquement.** Lecture (IA, repli local) + analyse **sur le serveur** ;
   le PDF n'est pas conservé. Le résultat est mis en cache dans le navigateur.
+- Le **comparateur de salaire** et l'**exemple d'analyse** sont libres d'accès.
 - Web responsive (PWA installable) ; app Android via Capacitor à venir, puis iOS.
 
 ## Démarrer
 
 ```bash
 npm install
-cp .env.example .env        # renseigner ANTHROPIC_API_KEY et STRIPE_SECRET_KEY (sk_test_…)
+cp .env.example .env        # renseigner ANTHROPIC_API_KEY (npm run set-key), éventuellement PAYLUMO_ACCESS_CODE
 npm run dev:all             # front (5173) + API (8787), Vite proxifie /api
 ```
 
 `npm run dev` seul lance le front ; les appels `/api/*` échouent alors
-proprement (paiement « momentanément indisponible »).
+proprement (« Serveur injoignable »).
 
 | Script | Rôle |
 |---|---|
@@ -30,6 +32,8 @@ proprement (paiement « momentanément indisponible »).
 | `npm test` | tests Vitest |
 | `npm run fixtures` | régénère les bulletins PDF synthétiques de test |
 | `npm run typecheck` | vérification TypeScript (client + serveur) |
+| `npm run set-key` | écrit `ANTHROPIC_API_KEY` dans `.env` (saisie au clavier) |
+| `npm run verify:claude` | appel réel à l'API sur un bulletin d'exemple |
 
 ## Architecture
 
@@ -44,16 +48,15 @@ server/
   claude.ts             PDF → RawExtraction via l'API Anthropic (sortie structurée)
   localPdf.ts           pdf.js « legacy » pour le repli local
   analyze.ts            runAnalysis : Claude → repli local → analyzePayslip → StoredAnalysis
-  stripe.ts             Checkout · vérification du paiement · remboursement
-  app.ts                app Hono : POST /api/checkout · POST /api/analyze
+  app.ts                app Hono : POST /api/analyze (code d'accès + PDF)
   dev.ts                serveur de dev local
 api/[[...route]].ts     entrée serverless Vercel (délègue à server/app)
 src/
   app/                  routes, layout, thème, store (Zustand)
   features/
-    import/             ImportPage (choix → précontrôle → paiement → analyse) · precheck
-    payment/            checkout (hash + Stripe) · analyze (récupération après paiement)
+    import/             ImportPage (choix → précontrôle → code → analyse) · precheck · requestAnalysis
     parsing/pdf.ts      câblage worker pdf.js (client) → délègue à shared/parsing/pdf-core
+    comparator/         comparateur de salaire INSEE (gratuit, 100 % client)
     results/ explain/ history/ settings/
   lib/storage.ts        historique local (IndexedDB)
 ```
@@ -61,20 +64,18 @@ src/
 ### Flux
 
 ```
-PDF ─ précontrôle local (gratuit : couche texte + mots-clés bulletin)
-    └─ « Payer 0,99 € » ─ POST /api/checkout ─ Stripe Checkout ─ retour ?session_id=…
-        └─ POST /api/analyze { session_id, pdf }
-             1. verifyPaid : payé ? montant ? SHA-256 du PDF == metadata.pdfHash ? déjà remboursé ?
-             2. extractWithClaude → (repli extract local)
-             3. analyzePayslip  (déterministe)
-             4. → StoredAnalysis   |   échec définitif → remboursement auto (422)
+PDF ─ précontrôle local (couche texte + mots-clés bulletin)
+    └─ code d'accès ─ POST /api/analyze { code, pdf, fileName }
+        1. code == PAYLUMO_ACCESS_CODE ? (sinon 401)
+        2. extractWithClaude → (repli extract local)
+        3. analyzePayslip  (déterministe)
+        4. → StoredAnalysis   |   bulletin illisible → 422   |   panne → 502 retry
 ```
 
 - **L'analyse est déterministe** — l'IA ne fait que *lire*.
-- **Défensif** : champ peu fiable non contrôlé ; extraction trop pauvre →
-  `LECTURE_INCOMPLETE` ; panne transitoire → réessai gratuit (session conservée) ;
-  bulletin illisible → remboursement automatique.
-- Re-consulter une analyse déjà payée (Historique) est gratuit.
+- **Défensif** : champ peu fiable non contrôlé ; panne transitoire → réessai ;
+  bulletin illisible (scan, mise en page inconnue) → 422.
+- Re-consulter une analyse (Historique) ne repasse pas par le serveur.
 
 ## Contrôles (`shared/analysis/checks/`)
 
@@ -83,29 +84,21 @@ assiette attendue (tranches / plafond), cotisation obligatoire manquante, ligne
 inconnue, cohérence du brut, passage brut → net, net après PAS, prélèvement à la
 source, SMIC, dépassement de plafond.
 
-## Paiement (Stripe)
+## Accès
 
-- Checkout hébergé, mode `payment`, prix inline `PAYLUMO_PRICE_CENTS` (défaut 99).
-- Le paiement est lié au bulletin par le **SHA-256 du PDF** (`session.metadata.pdfHash`)
-  : une session ne débloque que ce fichier ; le réessai sur le même fichier est
-  idempotent, un autre fichier exige un nouveau paiement.
-- **Pas de webhook** : vérification de la session au retour. (Webhook = durcissement
-  optionnel pour la réconciliation des paiements abandonnés.)
-- Remboursement automatique (`stripe.refunds.create`) si la lecture échoue
-  définitivement.
-- Rate-limit en mémoire — pour la prod, brancher Vercel KV / Upstash (idem
-  consommation des sessions).
+- L'analyse (`POST /api/analyze`) exige un **code d'accès** égal à
+  `PAYLUMO_ACCESS_CODE` (défaut `ASSIATA`), comparé sans casse ni espaces.
+- Le client mémorise le code dans `sessionStorage` pour la session en cours.
+- Rate-limit par IP en mémoire (`RATE_LIMIT_PER_HOUR`, défaut 30) — pour la prod,
+  brancher Vercel KV / Upstash.
+- Stripe a été retiré (paiement à réintroduire plus tard si besoin).
 
 ## Déploiement (Vercel)
 
 `api/[[...route]].ts` est détecté comme fonction serverless Node ; le front Vite
 se build dans `dist/`. Variables d'environnement (dashboard) :
-`ANTHROPIC_API_KEY`, `PAYLUMO_MODEL`, `STRIPE_SECRET_KEY` (`sk_live_…`),
-`PAYLUMO_PRICE_CENTS`, `ALLOWED_ORIGINS` (= URL de l'app), `MAX_PDF_MB`,
-`RATE_LIMIT_PER_HOUR`.
-
-**À faire hors code** : la vente en ligne impose des CGV + une politique de
-remboursement accessibles (exigence Stripe).
+`ANTHROPIC_API_KEY`, `PAYLUMO_MODEL`, `PAYLUMO_ACCESS_CODE`,
+`ALLOWED_ORIGINS` (= URL de l'app), `MAX_PDF_MB`, `RATE_LIMIT_PER_HOUR`.
 
 ## Référentiel 2026 — sources
 
@@ -118,11 +111,13 @@ BOSS, « Chiffr'Agirc-Arrco 2026 », SMIC au 1er janvier (12,02 €) puis 1er ju
 - Extracteur local calé sur le **format « bulletin clarifié »** (commun à SAP HCM
   France) ; à affiner sur de vrais bulletins SAP (`samples/`).
 - PDF scannés non pris en charge (OCR prévu).
-- Structured outputs : vérifier au premier appel Claude réel que l'API accepte le
-  schéma JSON généré (champs `nullable`).
-- À venir : build Android (Capacitor), iOS ; comparaison INSEE.
+- Structured outputs Anthropic : schéma Zod `nullable` **vérifié** accepté par
+  l'API (`npm run verify:claude`).
+- À venir : réintroduction éventuelle du paiement ; build Android (Capacitor),
+  iOS ; upgrade du comparateur INSEE (vrais jeux de données).
 
 ## Avertissement
 
-Analyse **indicative** fondée sur des barèmes publics. Ne remplace pas l'avis du
-service paie, d'un expert-comptable, de l'URSSAF ou de l'inspection du travail.
+Analyse **indicative** fondée sur des barèmes publics. Elle ne constitue pas un
+conseil juridique, comptable ou fiscal ; pour toute précision, votre service paie
+ou un expert-comptable est le bon interlocuteur.

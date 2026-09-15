@@ -13,12 +13,10 @@ try {
   /* pas de fichier .env */
 }
 
-for (const [key, note] of [
-  ['ANTHROPIC_API_KEY', 'lecture du bulletin → 502'],
-  ['STRIPE_SECRET_KEY', 'paiement → 503'],
-] as const) {
-  if (!process.env[key]) console.warn(`⚠  ${key} non défini (${note}). Voir .env.example.`);
-}
+if (!process.env.ANTHROPIC_API_KEY)
+  console.warn('⚠  ANTHROPIC_API_KEY non défini (lecture du bulletin → 502). Voir .env.example.');
+if (!process.env.PAYLUMO_ACCESS_CODE)
+  console.warn('⚠  PAYLUMO_ACCESS_CODE non défini — code par défaut « ASSIATA ».');
 
 const port = Number(process.env.PORT) || 8787;
 serve({ fetch: app.fetch, port }, (info) => {
