@@ -1,7 +1,7 @@
 /**
- * Envoie le bulletin au serveur pour lecture + analyse, débloqué par un code
- * d'accès. Le PDF n'est pas conservé côté serveur ; le résultat est mis en
- * cache dans ce navigateur (voir l'appelant).
+ * Envoie le bulletin au serveur pour lecture + analyse. Le PDF n'est pas
+ * conservé côté serveur ; le résultat est mis en cache dans ce navigateur
+ * (voir l'appelant).
  */
 
 import type { StoredAnalysis } from '@shared/analysis/types';
@@ -10,7 +10,6 @@ const API = (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
 
 export type AnalyzeOutcome =
   | { kind: 'ok'; analysis: StoredAnalysis }
-  | { kind: 'bad_code'; message: string }
   | { kind: 'retry'; message: string }
   | { kind: 'unreadable'; message: string }
   | { kind: 'error'; message: string };
@@ -25,7 +24,6 @@ function toBase64(buf: ArrayBuffer): string {
 }
 
 export async function requestAnalysis(
-  code: string,
   file: File,
   conventionLabel?: string | null,
 ): Promise<AnalyzeOutcome> {
@@ -42,7 +40,6 @@ export async function requestAnalysis(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        code,
         pdf: pdfBase64,
         fileName: file.name,
         convention: conventionLabel || null,
@@ -64,8 +61,6 @@ export async function requestAnalysis(
   }
 
   switch (error) {
-    case 'bad_code':
-      return { kind: 'bad_code', message: 'Code d’accès incorrect.' };
     case 'retry':
       return { kind: 'retry', message: 'La lecture a échoué temporairement. Réessayez.' };
     case 'unreadable':

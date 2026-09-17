@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { KeyRound } from 'lucide-react';
 import { Card, SectionTitle, Button } from '@/components/ui';
 import { useTheme } from '@/app/theme';
 import { PASS, PMSS, REFERENCE_YEAR, SMIC_2026 } from '@shared/data/params';
@@ -43,18 +42,6 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
-      </Card>
-
-      <Card>
-        <h3 className="flex items-center gap-1.5 font-semibold">
-          <KeyRound size={16} className="text-brand-600 dark:text-brand-400" />
-          Accès
-        </h3>
-        <p className="mt-1 text-sm text-muted">
-          L’analyse est réservée aux personnes disposant d’un <strong className="text-[rgb(var(--text))]">code d’accès</strong>,
-          demandé au moment de lancer l’analyse — sans compte ni paiement. Le comparateur de
-          salaire et l’exemple d’analyse restent librement accessibles.
-        </p>
       </Card>
 
       <Card>

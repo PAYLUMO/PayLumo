@@ -1,7 +1,6 @@
 /**
  * Analyse serveur d'un bulletin : lecture (Claude, puis repli local) →
- * `analyzePayslip` → `StoredAnalysis`. Débloquée seulement après vérification
- * du code d'accès (voir `app.ts`).
+ * `analyzePayslip` → `StoredAnalysis`.
  */
 
 import { extractWithClaude, ClaudeRefusalError, ClaudeUnusableError } from './claude.js';

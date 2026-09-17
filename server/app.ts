@@ -2,9 +2,8 @@
  * API PayLumo — analyse d'un bulletin de paie.
  *
  * App Hono partagée par le dev local (`server/dev.ts`) et Vercel (`api/*.ts`).
- *   POST /api/analyze   { code, pdf, fileName, convention? } → StoredAnalysis
+ *   POST /api/analyze   { pdf, fileName, convention? } → StoredAnalysis
  *
- * L'analyse est débloquée par un code d'accès (`PAYLUMO_ACCESS_CODE`).
  * Ne journalise ni ne stocke le contenu du PDF.
  */
 
@@ -20,13 +19,6 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
-
-/** Code d'accès attendu — comparé sans casse ni espaces. */
-const ACCESS_CODE = (process.env.PAYLUMO_ACCESS_CODE || 'ASSIATA').trim().toLowerCase();
-
-function codeOk(input: unknown): boolean {
-  return typeof input === 'string' && input.trim().toLowerCase() === ACCESS_CODE;
-}
 
 // Rate-limit : en mémoire (best-effort, se réinitialise au cold start).
 // Prod : Vercel KV / Upstash.
@@ -74,14 +66,12 @@ app.post('/api/analyze', async (c) => {
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip') || 'local';
   if (rateLimited(ip)) return c.json({ error: 'rate_limited' }, 429);
 
-  let body: { code?: unknown; pdf?: unknown; fileName?: unknown; convention?: unknown };
+  let body: { pdf?: unknown; fileName?: unknown; convention?: unknown };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: 'bad_json' }, 400);
   }
-
-  if (!codeOk(body.code)) return c.json({ error: 'bad_code' }, 401);
 
   const decoded = decodePdf(body.pdf);
   if ('error' in decoded) return c.json({ error: decoded.error }, decoded.status);
