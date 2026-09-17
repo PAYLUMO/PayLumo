@@ -94,6 +94,45 @@ describe('payslipFromRaw + analyse', () => {
     expect(p.employerCost?.value).toBeCloseTo(4719.2, 2);
   });
 
+  it('ligne de régularisation à base négative : pas de faux CALCUL_INCOHERENT', () => {
+    // Sur un vrai bulletin, une ligne de régularisation (tranches Agirc-Arrco
+    // recalculées progressivement, correction d'une période antérieure…)
+    // affiche couramment une base négative, avec un montant toujours positif
+    // (comme tous les montants — voir fromRaw.ts). La cohérence base × taux
+    // doit être vérifiée en valeur absolue, pas en substituant une base « du
+    // mois en cours » qui n'a rien à voir avec la ligne lue.
+    const raw = loadRaw('clarified-sain.raw.json');
+    raw.contributions.push({
+      label: 'CEG tranche 1',
+      section: null,
+      base: -100,
+      employeeRate: 0.86,
+      employeeAmount: 0.86, // |-100 × 0,86 %| = 0,86 € — cohérent
+      employerRate: null,
+      employerAmount: null,
+    });
+    const result = analyzePayslip(payslipFromRaw(raw));
+    expect(
+      result.findings.some((f) => f.code === 'CALCUL_INCOHERENT' && f.canonical === 'CEG_T1'),
+    ).toBe(false);
+  });
+
+  it('ligne de régularisation à base négative : un vrai écart reste détecté', () => {
+    const raw = loadRaw('clarified-sain.raw.json');
+    raw.contributions.push({
+      label: 'CEG tranche 1',
+      section: null,
+      base: -100,
+      employeeRate: 0.86,
+      employeeAmount: 5, // ne correspond pas à |-100 × 0,86 %| = 0,86 €
+      employerRate: null,
+      employerAmount: null,
+    });
+    const result = analyzePayslip(payslipFromRaw(raw));
+    const f = result.findings.find((x) => x.code === 'CALCUL_INCOHERENT' && x.canonical === 'CEG_T1');
+    expect(f).toBeDefined();
+  });
+
   it('bulletin d’une autre année → lecture seule, taux non comparés', () => {
     const raw = loadRaw('clarified-sain.raw.json');
     raw.period = { month: 6, year: 2025 };

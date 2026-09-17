@@ -13,7 +13,12 @@ function whatToDo(): string {
 }
 
 function lineBase(line: ContributionLine, ref: RateRef, ctx: AnalysisContext): number | null {
-  if (line.base && line.base.confidence >= 0.5 && line.base.value > 0) return line.base.value;
+  // On fait confiance à la base lue quand elle existe — y compris négative :
+  // une ligne de régularisation (correction d'une période antérieure, tranches
+  // Agirc-Arrco recalculées progressivement…) affiche couramment une base
+  // négative sur un vrai bulletin, et c'est bien CETTE base qu'il faut vérifier
+  // en cohérence avec le montant affiché, pas une base théorique du mois en cours.
+  if (line.base && line.base.confidence >= 0.5) return line.base.value;
   return expectedBase(ref.assiette, ctx);
 }
 
@@ -84,7 +89,9 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
         (part.amount?.confidence ?? 0) >= MIN_CONF &&
         (part.rate?.confidence ?? 0) >= MIN_CONF
       ) {
-        const theoretical = roundCents((base * foundRate) / 100);
+        // `amount` est toujours une magnitude positive (voir fromRaw.ts/extract.ts) ;
+        // `base` peut être négative (régularisation) — on compare donc en valeur absolue.
+        const theoretical = Math.abs(roundCents((base * foundRate) / 100));
         const tolEur = Math.max(0.05, theoretical * 0.01);
         if (!approxEqual(amount, theoretical, tolEur)) {
           findings.push({
