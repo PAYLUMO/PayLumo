@@ -24,7 +24,7 @@ const pct = (n) =>
 
 const COL = { label: 40, base: 320, rateSal: 380, montSal: 452, ratePat: 512, montPat: 578 };
 
-async function render(bulletin, meta) {
+async function render(bulletin, meta, opts = {}) {
   const pdf = await PDFDocument.create();
   pdf.setProducer(meta.producer ?? 'PayLumo Fixture Generator');
   pdf.setCreator(meta.creator ?? 'PayLumo');
@@ -164,7 +164,25 @@ async function render(bulletin, meta) {
   line(10);
   put(`Coût total employeur : ${eur(totals.coutEmployeur)} €`, COL.label, { size: 8, color: rgb(0.4, 0.4, 0.4) });
 
+  if (opts.cumuls) {
+    const { gross, netImposable, netSocial } = opts.cumuls;
+    line(16);
+    put('CUMULS DEPUIS LE 1er JANVIER', COL.label, { bold: true, size: 8 });
+    line();
+    put(
+      `Brut : ${eur(gross)} €      Net imposable : ${eur(netImposable)} €      Net social : ${eur(netSocial)} €`,
+      COL.label,
+      { size: 8 },
+    );
+  }
+
   return pdf.save();
+}
+
+/** Nombre de mois écoulés depuis janvier d'après une periodLabel "JJ/MM/AAAA au JJ/MM/AAAA". */
+function monthsElapsed(periodLabel) {
+  const end = periodLabel.match(/au (\d{2})\/(\d{2})\/(\d{4})/);
+  return end ? Number(end[2]) : 1;
 }
 
 // ── Scénarios ────────────────────────────────────────────────────────────────
@@ -315,3 +333,25 @@ for (const s of scenarios) {
 
 writeFileSync(join(HERE, 'manifest.json'), JSON.stringify(manifest, null, 2));
 console.log(`\n${manifest.length} bulletins générés dans ${OUT}`);
+
+// ── Exemple public (avec cumuls) ────────────────────────────────────────────
+// public/exemple-bulletin.pdf n'est utilisé QUE par le chemin serveur (lecture
+// IA) : ImportPage « Tester avec un exemple » et npm run verify:claude.
+// Contrairement à exemple-bulletin-anomalie.pdf (repris par la démo locale de
+// l'accueil), on peut donc y ajouter un bloc « Cumuls » sans risquer de
+// perturber l'extracteur local heuristique (qui, lui, ne lit pas les cumuls).
+{
+  const sain = scenarios.find((s) => s.id === 'clarified-sain');
+  const bulletin = calcBulletin(sain.input);
+  const months = monthsElapsed(sain.meta.periodLabel);
+  const bytes = await render(bulletin, sain.meta, {
+    cumuls: {
+      gross: Math.round(bulletin.totals.gross * months * 100) / 100,
+      netImposable: Math.round(bulletin.totals.netImposable * months * 100) / 100,
+      netSocial: Math.round(bulletin.totals.netSocial * months * 100) / 100,
+    },
+  });
+  const outPath = join(HERE, '..', '..', 'public', 'exemple-bulletin.pdf');
+  writeFileSync(outPath, bytes);
+  console.log(`✓ public/exemple-bulletin.pdf régénéré (avec cumuls sur ${months} mois)`);
+}
