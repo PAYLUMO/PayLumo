@@ -334,24 +334,26 @@ for (const s of scenarios) {
 writeFileSync(join(HERE, 'manifest.json'), JSON.stringify(manifest, null, 2));
 console.log(`\n${manifest.length} bulletins générés dans ${OUT}`);
 
-// ── Exemple public (avec cumuls) ────────────────────────────────────────────
-// public/exemple-bulletin.pdf n'est utilisé QUE par le chemin serveur (lecture
-// IA) : ImportPage « Tester avec un exemple » et npm run verify:claude.
-// Contrairement à exemple-bulletin-anomalie.pdf (repris par la démo locale de
-// l'accueil), on peut donc y ajouter un bloc « Cumuls » sans risquer de
-// perturber l'extracteur local heuristique (qui, lui, ne lit pas les cumuls).
-{
-  const sain = scenarios.find((s) => s.id === 'clarified-sain');
-  const bulletin = calcBulletin(sain.input);
-  const months = monthsElapsed(sain.meta.periodLabel);
-  const bytes = await render(bulletin, sain.meta, {
+// ── Exemples publics (avec cumuls) ──────────────────────────────────────────
+// L'extracteur local (shared/parsing/extract.ts) arrête toute lecture dès
+// qu'il rencontre une ligne « Cumuls » (voir le garde-fou qui y a été ajouté),
+// donc ce bloc est maintenant sans risque même pour exemple-bulletin-anomalie.pdf,
+// repris tel quel par la démo 100 % locale de l'accueil (runDemo.ts).
+const publicExamples = [
+  { scenarioId: 'clarified-sain', file: 'exemple-bulletin.pdf' },
+  { scenarioId: 'clarified-taux-vieillesse', file: 'exemple-bulletin-anomalie.pdf' },
+];
+for (const { scenarioId, file } of publicExamples) {
+  const s = scenarios.find((x) => x.id === scenarioId);
+  const bulletin = calcBulletin(s.input);
+  const months = monthsElapsed(s.meta.periodLabel);
+  const bytes = await render(bulletin, s.meta, {
     cumuls: {
       gross: Math.round(bulletin.totals.gross * months * 100) / 100,
       netImposable: Math.round(bulletin.totals.netImposable * months * 100) / 100,
       netSocial: Math.round(bulletin.totals.netSocial * months * 100) / 100,
     },
   });
-  const outPath = join(HERE, '..', '..', 'public', 'exemple-bulletin.pdf');
-  writeFileSync(outPath, bytes);
-  console.log(`✓ public/exemple-bulletin.pdf régénéré (avec cumuls sur ${months} mois)`);
+  writeFileSync(join(HERE, '..', '..', 'public', file), bytes);
+  console.log(`✓ public/${file} régénéré (avec cumuls sur ${months} mois)`);
 }

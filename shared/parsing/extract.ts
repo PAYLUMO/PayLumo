@@ -235,7 +235,7 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
   const contributions: ContributionLine[] = [];
   let gross: number | undefined;
   let currentSection: ContribCategory | null = null;
-  let phase: 'pre' | 'remuneration' | 'cotisations' | 'summary' = 'pre';
+  let phase: 'pre' | 'remuneration' | 'cotisations' | 'summary' | 'done' = 'pre';
 
   const summary: Record<string, { amount?: number; rate?: number }> = {};
 
@@ -243,6 +243,16 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
     const raw = line.text.trim();
     const norm = normalizeLabel(raw);
     if (!raw) continue;
+
+    // Bloc « Cumuls » (cumul depuis janvier) : jamais lu localement — les
+    // libellés y recoupent ceux du récapitulatif mensuel (net imposable, net
+    // social…) et écraseraient les bons montants avec les cumuls. On arrête
+    // toute lecture dès qu'on l'atteint (il vient toujours en tout dernier).
+    if (phase === 'done') continue;
+    if (/^cumuls?\b/.test(norm)) {
+      phase = 'done';
+      continue;
+    }
 
     if (colInfo && line.y === colInfo.headerY) {
       phase = phase === 'pre' ? 'remuneration' : phase;
