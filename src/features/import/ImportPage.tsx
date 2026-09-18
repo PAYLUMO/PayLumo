@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, FileText, Loader2, RefreshCw, Scale, ShieldCheck, UploadCloud } from 'lucide-react';
+import { Check, FileText, KeyRound, Loader2, RefreshCw, Scale, ShieldCheck, UploadCloud } from 'lucide-react';
 import { Button, Card, cx } from '@/components/ui';
 import { useAnalysisStore } from '@/app/store';
 import { CONVENTIONS } from '@shared/data/conventions';
@@ -8,6 +8,7 @@ import { precheckPdf } from './precheck';
 import { redactSensitive } from './redact';
 import { requestAnalysis } from './requestAnalysis';
 
+const CODE_KEY = 'paylumo.accessCode';
 const CONVENTION_KEY = 'paylumo.convention';
 const CONVENTIONS_SORTED = [...CONVENTIONS].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 
@@ -26,6 +27,14 @@ type Phase =
   | { s: 'analyzing'; file: File; masked: string | null }
   | { s: 'error'; message: string; file?: File };
 
+function readStoredCode(): string {
+  try {
+    return sessionStorage.getItem(CODE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 function readStoredConvention(): string {
   try {
     const v = localStorage.getItem(CONVENTION_KEY) ?? '';
@@ -41,6 +50,7 @@ export function ImportPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>({ s: 'idle' });
+  const [code, setCode] = useState(readStoredCode);
   const [convention, setConvention] = useState(readStoredConvention);
   const { setCurrent } = useAnalysisStore();
 
@@ -72,9 +82,10 @@ export function ImportPage() {
       }
 
       setPhase({ s: 'analyzing', file, masked });
-      const outcome = await requestAnalysis(toSend, convention || null);
+      const outcome = await requestAnalysis(code.trim(), toSend, convention || null);
       if (outcome.kind === 'ok') {
         try {
+          sessionStorage.setItem(CODE_KEY, code.trim());
           if (convention) localStorage.setItem(CONVENTION_KEY, convention);
           else localStorage.removeItem(CONVENTION_KEY);
         } catch {
@@ -86,7 +97,7 @@ export function ImportPage() {
       }
       setPhase({ s: 'error', message: outcome.message, file });
     },
-    [convention, navigate, setCurrent],
+    [code, convention, navigate, setCurrent],
   );
 
   const loadExample = useCallback(
@@ -114,7 +125,7 @@ export function ImportPage() {
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Analyser un bulletin</h1>
         <p className="mt-1 text-sm text-muted">
-          Importez votre fiche de paie au format PDF.
+          Importez votre fiche de paie au format PDF. Un code d’accès est demandé avant l’analyse.
         </p>
       </div>
 
@@ -222,6 +233,27 @@ export function ImportPage() {
           </div>
 
           <label className="block text-sm font-medium">
+            Code d’accès
+            <div className="relative mt-1">
+              <KeyRound
+                size={16}
+                className="pointer-events-none absolute left-3 top-2.5 text-muted"
+              />
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && code.trim()) void analyze(file);
+                }}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="votre code"
+                className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--surface))] py-2 pl-9 pr-3 text-sm focus:outline focus:outline-2 focus:outline-brand-500"
+              />
+            </div>
+          </label>
+
+          <label className="block text-sm font-medium">
             Convention collective{' '}
             <span className="font-normal text-muted">(optionnel)</span>
             <div className="relative mt-1">
@@ -254,7 +286,9 @@ export function ImportPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void analyze(file)}>Analyser le bulletin</Button>
+            <Button onClick={() => void analyze(file)} disabled={!code.trim()}>
+              Analyser le bulletin
+            </Button>
             <Button variant="ghost" onClick={() => setPhase({ s: 'idle' })}>
               Changer de fichier
             </Button>

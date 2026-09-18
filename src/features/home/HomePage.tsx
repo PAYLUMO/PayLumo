@@ -63,7 +63,7 @@ export function HomePage() {
           </Button>
         </Link>
         <p className="mt-3 text-xs text-muted">
-          PDF natif uniquement (pas de scan) · gratuit · sans compte
+          PDF natif uniquement (pas de scan) · accès par code · sans compte
         </p>
         <button
           type="button"

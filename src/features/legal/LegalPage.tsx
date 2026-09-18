@@ -132,6 +132,9 @@ export function Confidentialite() {
           <strong>Données techniques</strong> : adresse IP, horodatage et informations de requête
           (journaux du serveur), utilisées pour la sécurité et la limitation des abus.
         </li>
+        <li>
+          <strong>Le code d’accès</strong> que vous saisissez, le cas échéant.
+        </li>
       </ul>
       <p>
         Vous pouvez masquer votre numéro de sécurité sociale sur le PDF avant de l’importer : il
@@ -248,9 +251,9 @@ export function Conditions() {
 
       <h2>Accès au service</h2>
       <p>
-        L’accès est libre, sans création de compte ni paiement.{' '}
-        <Todo>Si un modèle payant est introduit ultérieurement : préciser ici le prix et les
-        modalités.</Todo>
+        L’accès se fait sans création de compte. <Todo>Le service est gratuit / payant — préciser
+        le modèle et, le cas échéant, les prix. Pendant la phase de lancement, un code d’accès peut
+        être demandé.</Todo>
       </p>
       <p>
         PayLumo peut limiter, suspendre ou refuser l’accès en cas d’usage abusif : automatisation,

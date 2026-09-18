@@ -4,16 +4,18 @@ Analyse de bulletin de paie français : décompose le salaire, explique chaque
 cotisation et repère les erreurs potentielles en comparant les taux au **barème
 légal 2026**.
 
+- **Analyse débloquée par un code d'accès** (`PAYLUMO_ACCESS_CODE`, défaut
+  `ASSIATA`), sans compte ni paiement.
 - **Import PDF uniquement.** Lecture (IA, repli local) + analyse **sur le serveur** ;
   le PDF n'est pas conservé. Le résultat est mis en cache dans le navigateur.
-- **Accès libre**, sans compte ni paiement (rate-limité par IP pour éviter les abus).
+- Le **comparateur de salaire** et l'**exemple d'analyse** sont libres d'accès.
 - Web responsive (PWA installable) ; app Android via Capacitor à venir, puis iOS.
 
 ## Démarrer
 
 ```bash
 npm install
-cp .env.example .env        # renseigner ANTHROPIC_API_KEY (npm run set-key)
+cp .env.example .env        # renseigner ANTHROPIC_API_KEY (npm run set-key), éventuellement PAYLUMO_ACCESS_CODE
 npm run dev:all             # front (5173) + API (8787), Vite proxifie /api
 ```
 
@@ -46,13 +48,13 @@ server/
   claude.ts             PDF → RawExtraction via l'API Anthropic (sortie structurée)
   localPdf.ts           pdf.js « legacy » pour le repli local
   analyze.ts            runAnalysis : Claude → repli local → analyzePayslip → StoredAnalysis
-  app.ts                app Hono : POST /api/analyze (PDF)
+  app.ts                app Hono : POST /api/analyze (code d'accès + PDF)
   dev.ts                serveur de dev local
 api/[[...route]].ts     entrée serverless Vercel (délègue à server/app)
 src/
   app/                  routes, layout, thème, store (Zustand)
   features/
-    import/             ImportPage (choix → précontrôle → analyse) · precheck · requestAnalysis
+    import/             ImportPage (choix → précontrôle → code → analyse) · precheck · requestAnalysis
     parsing/pdf.ts      câblage worker pdf.js (client) → délègue à shared/parsing/pdf-core
     comparator/         comparateur de salaire INSEE (gratuit, 100 % client)
     results/ explain/ history/ settings/
@@ -63,10 +65,11 @@ src/
 
 ```
 PDF ─ précontrôle local (couche texte + mots-clés bulletin)
-    └─ POST /api/analyze { pdf, fileName }
-        1. extractWithClaude → (repli extract local)
-        2. analyzePayslip  (déterministe)
-        3. → StoredAnalysis   |   bulletin illisible → 422   |   panne → 502 retry
+    └─ code d'accès ─ POST /api/analyze { code, pdf, fileName }
+        1. code == PAYLUMO_ACCESS_CODE ? (sinon 401)
+        2. extractWithClaude → (repli extract local)
+        3. analyzePayslip  (déterministe)
+        4. → StoredAnalysis   |   bulletin illisible → 422   |   panne → 502 retry
 ```
 
 - **L'analyse est déterministe** — l'IA ne fait que *lire*.
@@ -83,7 +86,9 @@ source, SMIC, dépassement de plafond.
 
 ## Accès
 
-- L'analyse (`POST /api/analyze`) est **libre d'accès**, sans compte ni code.
+- L'analyse (`POST /api/analyze`) exige un **code d'accès** égal à
+  `PAYLUMO_ACCESS_CODE` (défaut `ASSIATA`), comparé sans casse ni espaces.
+- Le client mémorise le code dans `sessionStorage` pour la session en cours.
 - Rate-limit par IP en mémoire (`RATE_LIMIT_PER_HOUR`, défaut 30) — pour la prod,
   brancher Vercel KV / Upstash.
 - Stripe a été retiré (paiement à réintroduire plus tard si besoin).
@@ -92,7 +97,7 @@ source, SMIC, dépassement de plafond.
 
 `api/[[...route]].ts` est détecté comme fonction serverless Node ; le front Vite
 se build dans `dist/`. Variables d'environnement (dashboard) :
-`ANTHROPIC_API_KEY`, `PAYLUMO_MODEL`,
+`ANTHROPIC_API_KEY`, `PAYLUMO_MODEL`, `PAYLUMO_ACCESS_CODE`,
 `ALLOWED_ORIGINS` (= URL de l'app), `MAX_PDF_MB`, `RATE_LIMIT_PER_HOUR`.
 
 ## Référentiel 2026 — sources
