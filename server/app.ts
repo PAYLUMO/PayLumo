@@ -11,7 +11,7 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { modelName } from './claude.js';
+import { keyStatus, modelName } from './claude.js';
 import { runAnalysis, TransientError, UnreadableError } from './analyze.js';
 import { findConventionByLabel } from '../shared/data/conventions.js';
 
@@ -68,7 +68,7 @@ app.use(
   }),
 );
 
-app.get('/api/health', (c) => c.json({ ok: true, model: modelName }));
+app.get('/api/health', (c) => c.json({ ok: true, model: modelName, anthropicKey: keyStatus() }));
 
 app.post('/api/analyze', async (c) => {
   const ip =

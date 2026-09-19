@@ -79,3 +79,11 @@ export async function extractWithClaude(pdfBase64: string): Promise<RawExtractio
 }
 
 export const modelName = MODEL;
+
+/** Diagnostic de configuration sans jamais exposer la clé (utilisé par /api/health). */
+export function keyStatus(): 'missing' | 'malformed' | 'ok' {
+  const k = process.env.ANTHROPIC_API_KEY;
+  if (!k) return 'missing';
+  // espace / retour à la ligne / guillemets collés avec la clé = cas fréquent sur Vercel
+  return /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(k) ? 'ok' : 'malformed';
+}

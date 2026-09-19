@@ -25,6 +25,16 @@ beforeEach(() => {
   runAnalysis.mockReset();
 });
 
+describe('GET /api/health', () => {
+  it('signale l’état de la clé Anthropic sans jamais l’exposer', async () => {
+    const res = await app.request('/api/health');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(['missing', 'malformed', 'ok']).toContain(body.anthropicKey);
+    expect(JSON.stringify(body)).not.toMatch(/sk-ant/);
+  });
+});
+
 describe('POST /api/analyze', () => {
   it('code absent → 401, analyse non lancée', async () => {
     const res = await analyze({ pdf: PDF_B64 });
