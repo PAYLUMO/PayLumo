@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, FileSearch, Loader2, Lock, Scale, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Calculator, FileSearch, Loader2, Lock, Scale, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandMark } from '@/components/Brand';
 import { Button, Card } from '@/components/ui';
 import { useAnalysisStore } from '@/app/store';
@@ -75,6 +75,23 @@ export function HomePage() {
           Voir un exemple d’analyse (gratuit)
         </button>
       </section>
+
+      <Link
+        to="/calculateur"
+        className="flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] p-4 transition-colors hover:surface-2"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+          <Calculator size={20} />
+        </span>
+        <div className="flex-1">
+          <h3 className="font-semibold">Calculer brut ↔ net — gratuit</h3>
+          <p className="text-sm text-muted">
+            Votre net à partir du brut (ou l’inverse), avec les cotisations légales 2026 et le
+            prélèvement à la source.
+          </p>
+        </div>
+        <ArrowRight size={18} className="shrink-0 text-muted" />
+      </Link>
 
       <Link
         to="/comparateur"

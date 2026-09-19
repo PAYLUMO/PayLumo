@@ -3,6 +3,7 @@ import { Card, SectionTitle } from '@/components/ui';
 import type { Payslip } from '@shared/parsing/model';
 import { costBreakdown } from './costBreakdown';
 import { COTIS_COLOR, NET_COLOR, PAT_COLOR } from './categoryViz';
+import { Tile } from './Tile';
 
 /** Ce que coûte le poste à l'employeur, ce qui est retenu, ce qui arrive sur le compte. */
 export function CostVsNet({ payslip }: { payslip: Payslip }) {
@@ -72,37 +73,5 @@ export function CostVsNet({ payslip }: { payslip: Payslip }) {
         collective (assurance maladie, retraite, chômage, famille).
       </p>
     </Card>
-  );
-}
-
-function Tile({
-  label,
-  value,
-  caption,
-  color,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  caption: string;
-  color?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={
-        'rounded-xl p-3 ' +
-        (highlight ? 'bg-brand-50 dark:bg-brand-950/40' : 'surface-2')
-      }
-    >
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
-        {color && (
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
-        )}
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-extrabold tabular-nums sm:text-xl">{value}</p>
-      <p className="mt-0.5 text-[11px] leading-snug text-muted">{caption}</p>
-    </div>
   );
 }

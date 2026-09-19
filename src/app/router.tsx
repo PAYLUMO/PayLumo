@@ -7,6 +7,7 @@ import { CotisationDetailPage } from '@/features/explain/CotisationDetailPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ComparatorPage } from '@/features/comparator/ComparatorPage';
+import { CalculatorPage } from '@/features/calculator/CalculatorPage';
 import { MentionsLegales, Confidentialite, Conditions } from '@/features/legal/LegalPage';
 import { NotFoundPage } from '@/app/NotFoundPage';
 
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'analyser', element: <ImportPage /> },
+      { path: 'calculateur', element: <CalculatorPage /> },
       { path: 'comparateur', element: <ComparatorPage /> },
       { path: 'resultats/:id', element: <ResultsPage /> },
       { path: 'cotisation/:code', element: <CotisationDetailPage /> },

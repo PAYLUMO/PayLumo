@@ -9,6 +9,8 @@ import { MoneyMap } from './MoneyMap';
 import { GrossComposition } from './GrossComposition';
 import { Contributions } from './Contributions';
 import { CostVsNet } from './CostVsNet';
+import { PasCheck } from './PasCheck';
+import { Positioning } from './Positioning';
 import { Anomalies } from './Anomalies';
 
 export function ResultsPage() {
@@ -56,9 +58,11 @@ export function ResultsPage() {
       <Anomalies result={result} />
       {result.summary.canAnalyze && (
         <>
+          <PasCheck payslip={payslip} />
           <MoneyMap payslip={payslip} />
           <GrossComposition payslip={payslip} />
           <Contributions payslip={payslip} result={result} />
+          <Positioning payslip={payslip} />
         </>
       )}
 
