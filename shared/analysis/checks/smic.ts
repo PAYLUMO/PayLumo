@@ -1,16 +1,22 @@
 import { formatEuro, roundCents } from '../../lib/money.js';
 import { DUREE_LEGALE_MENSUELLE } from '../../data/params.js';
-import type { Finding } from '../findings.js';
+import type { Finding, PassedCheck } from '../findings.js';
 import type { AnalysisContext } from '../context.js';
+
+/** Entrées du contrôle SMIC, ou null si non applicable (hors référentiel, brut non fiable). */
+function smicInputs(ctx: AnalysisContext) {
+  const p = ctx.payslip;
+  if (!ctx.periodCovered || !ctx.grossConfident) return null;
+  const heures = p.time.heuresContrat?.value;
+  const baseItem = p.grossItems.find((g) => g.kind === 'base' || /salaire de base|salaire mensuel|appointements/i.test(g.label));
+  return { heures, salaireBase: baseItem?.amount.value };
+}
 
 /** Le salaire respecte-t-il le SMIC applicable à la période ? */
 export function checkSmic(ctx: AnalysisContext): Finding[] {
-  const p = ctx.payslip;
-  if (!ctx.periodCovered || !ctx.grossConfident) return [];
-
-  const heures = p.time.heuresContrat?.value;
-  const baseItem = p.grossItems.find((g) => g.kind === 'base' || /salaire de base|salaire mensuel|appointements/i.test(g.label));
-  const salaireBase = baseItem?.amount.value;
+  const inp = smicInputs(ctx);
+  if (!inp) return [];
+  const { heures, salaireBase } = inp;
 
   const smic = ctx.smic;
   const findings: Finding[] = [];
@@ -61,14 +67,48 @@ export function checkSmic(ctx: AnalysisContext): Finding[] {
   return findings;
 }
 
+const CAPPED_CANONICALS = new Set(['VIEILLESSE_PLAFONNEE', 'RETRAITE_COMPLEMENTAIRE_T1', 'CEG_T1']);
+
+/** Lignes plafonnées dont la base est lisible, ou [] si le contrôle n'est pas applicable. */
+function cappedLines(ctx: AnalysisContext) {
+  if (!ctx.periodCovered) return [];
+  return ctx.payslip.contributions.filter(
+    (l) => l.canonical && CAPPED_CANONICALS.has(l.canonical) && l.base && l.base.confidence >= 0.6,
+  );
+}
+
+/** SMIC et plafond de la Sécurité sociale : vérifiés sans écart. */
+export function passedSmicChecks(ctx: AnalysisContext, findings: Finding[]): PassedCheck[] {
+  const out: PassedCheck[] = [];
+
+  const smic = smicInputs(ctx);
+  if (smic && smic.salaireBase && smic.salaireBase > 0 && !findings.some((f) => f.code === 'SMIC_NON_RESPECTE')) {
+    const horaire = smic.heures && smic.heures > 0 ? smic.salaireBase / smic.heures : null;
+    out.push({
+      id: 'ok:smic',
+      title: 'SMIC respecté',
+      detail:
+        horaire != null
+          ? `Salaire de base ≈ ${formatEuro(horaire)} de l’heure, au-dessus du SMIC applicable (${formatEuro(ctx.smic.horaire)}).`
+          : `Salaire de base ${formatEuro(smic.salaireBase)}, au-dessus du SMIC mensuel applicable (${formatEuro(ctx.smic.mensuel151_67)}).`,
+    });
+  }
+
+  if (cappedLines(ctx).length > 0 && !findings.some((f) => f.code === 'PLAFOND_DEPASSE')) {
+    out.push({
+      id: 'ok:plafond',
+      title: 'Plafond de la Sécurité sociale bien appliqué',
+      detail: `Les cotisations plafonnées ne dépassent pas le plafond mensuel ${ctx.referenceYear} (${formatEuro(ctx.pmss)}).`,
+    });
+  }
+  return out;
+}
+
 /** Base des cotisations plafonnées ≤ 1 PMSS. */
 export function checkPlafond(ctx: AnalysisContext): Finding[] {
-  if (!ctx.periodCovered) return [];
   const findings: Finding[] = [];
-  for (const line of ctx.payslip.contributions) {
-    if (!line.base || line.base.confidence < 0.6) continue;
-    if (line.canonical !== 'VIEILLESSE_PLAFONNEE' && line.canonical !== 'RETRAITE_COMPLEMENTAIRE_T1' && line.canonical !== 'CEG_T1')
-      continue;
+  for (const line of cappedLines(ctx)) {
+    if (!line.base) continue;
     if (line.base.value > ctx.pmss + 1) {
       findings.push({
         id: `plafond:${line.canonical}`,

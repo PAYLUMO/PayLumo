@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { formatEuro, formatPercent } from '@shared/lib/money';
@@ -8,7 +9,17 @@ import { rateByCode } from '@shared/data/rates2026';
 import { buildContext, resolveRate } from '@shared/analysis/context';
 import type { AnalysisResult, Finding } from '@shared/analysis/findings';
 import { OkIcon, SeverityIcon } from './shared';
-import { CAT_COLOR, employeeCostByCategory } from './categoryViz';
+import { CAT_COLOR, employeeCostByCategory, employerCostByCategory } from './categoryViz';
+
+type Side = 'all' | 'employee' | 'employer';
+const SIDE_LABEL: Record<Side, string> = { all: 'Tous', employee: 'Salarial', employer: 'Patronal' };
+
+/** Un constat de taux porté par l'autre part n'a pas à s'afficher dans la vue filtrée. */
+function relevant(f: Finding, side: Side): boolean {
+  if (side === 'employer') return !f.id.endsWith(':employee');
+  if (side === 'employee') return !f.id.endsWith(':employer');
+  return true;
+}
 
 const ORDER: ContribCategory[] = ['SANTE', 'ATMP', 'RETRAITE', 'FAMILLE', 'CHOMAGE', 'CSG_CRDS', 'AUTRES'];
 
@@ -20,6 +31,7 @@ export function Contributions({
   result: AnalysisResult;
 }) {
   const ctx = buildContext(payslip);
+  const [side, setSide] = useState<Side>('all');
   const findingByCanonical = new Map<string, Finding[]>();
   for (const f of result.findings) {
     if (!f.canonical) continue;
@@ -35,6 +47,7 @@ export function Contributions({
     grouped.set(line.category, arr);
   }
   const salByCat = new Map(employeeCostByCategory(payslip).map((c) => [c.category, c.euro]));
+  const patByCat = new Map(employerCostByCategory(payslip).map((c) => [c.category, c.euro]));
 
   const hint = result.summary.periodCovered
     ? `taux comparés au barème ${result.summary.referenceYear}`
@@ -43,15 +56,37 @@ export function Contributions({
   return (
     <Card>
       <SectionTitle hint={hint}>Cotisations, ligne par ligne</SectionTitle>
+      <div role="tablist" aria-label="Filtrer par part" className="mb-3 inline-flex rounded-lg border border-[rgb(var(--border))] p-0.5 text-xs">
+        {(Object.keys(SIDE_LABEL) as Side[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={side === k}
+            onClick={() => setSide(k)}
+            className={cx(
+              'rounded-md px-3 py-1 font-medium transition-colors',
+              side === k ? 'bg-brand-600 text-white' : 'text-muted hover:surface-2',
+            )}
+          >
+            {SIDE_LABEL[k]}
+          </button>
+        ))}
+      </div>
       <div className="space-y-3">
         {ORDER.filter((c) => grouped.has(c)).map((cat) => {
+          const lines = grouped
+            .get(cat)!
+            .filter((l) => side === 'all' || (side === 'employee' ? l.employee : l.employer));
+          if (lines.length === 0) return null;
           const salTotal = salByCat.get(cat) ?? 0;
-          const lines = grouped.get(cat)!;
+          const patTotal = patByCat.get(cat) ?? 0;
+          const total = side === 'employee' ? salTotal : side === 'employer' ? patTotal : salTotal + patTotal;
           const hasIssue = lines.some((line) =>
             line.canonical &&
             findingByCanonical
               .get(line.canonical)
-              ?.some((f) => f.severity === 'erreur' || f.severity === 'avertissement'),
+              ?.some((f) => relevant(f, side) && (f.severity === 'erreur' || f.severity === 'avertissement')),
           );
           return (
             <details key={cat} className="group" open={hasIssue}>
@@ -63,12 +98,15 @@ export function Contributions({
                     aria-hidden="true"
                   />
                   {CATEGORY_EXPLAIN[cat].title}
+                  <span className="text-xs font-normal text-muted">
+                    ({lines.length} ligne{lines.length > 1 ? 's' : ''})
+                  </span>
                   {hasIssue && (
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
                   )}
                 </h3>
                 <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums text-muted">
-                  {salTotal > 0 && `${formatEuro(salTotal)} ce mois`}
+                  {total > 0 && `${formatEuro(total)} ce mois`}
                   <ChevronDown
                     size={14}
                     className="shrink-0 transition-transform group-open:rotate-180"
@@ -82,8 +120,13 @@ export function Contributions({
                     key={i}
                     line={line}
                     ctx={ctx}
+                    side={side}
                     verified={result.summary.periodCovered}
-                    findings={line.canonical ? (findingByCanonical.get(line.canonical) ?? []) : []}
+                    findings={
+                      line.canonical
+                        ? (findingByCanonical.get(line.canonical) ?? []).filter((f) => relevant(f, side))
+                        : []
+                    }
                   />
                 ))}
               </div>
@@ -100,11 +143,13 @@ function LineRow({
   ctx,
   findings,
   verified,
+  side,
 }: {
   line: ContributionLine;
   ctx: ReturnType<typeof buildContext>;
   findings: Finding[];
   verified: boolean;
+  side: Side;
 }) {
   const ref = line.canonical ? rateByCode(line.canonical) : undefined;
   const explain = explainOf(line.canonical);
@@ -136,20 +181,24 @@ function LineRow({
           </span>
         </span>
         <span className="shrink-0 text-right text-xs tabular-nums">
-          <RatePair
-            label="sal."
-            found={line.employee?.rate?.value}
-            expected={expEmp}
-            mismatch={empFlagged}
-            amount={line.employee?.amount?.value}
-          />
-          <RatePair
-            label="pat."
-            found={line.employer?.rate?.value}
-            expected={expPat}
-            mismatch={patFlagged}
-            amount={line.employer?.amount?.value}
-          />
+          {side !== 'employer' && (
+            <RatePair
+              label="sal."
+              found={line.employee?.rate?.value}
+              expected={expEmp}
+              mismatch={empFlagged}
+              amount={line.employee?.amount?.value}
+            />
+          )}
+          {side !== 'employee' && (
+            <RatePair
+              label="pat."
+              found={line.employer?.rate?.value}
+              expected={expPat}
+              mismatch={patFlagged}
+              amount={line.employer?.amount?.value}
+            />
+          )}
         </span>
         <ChevronDown size={16} className="shrink-0 text-muted transition-transform group-open:rotate-180" />
       </summary>

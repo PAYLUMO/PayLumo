@@ -8,7 +8,7 @@ import { Summary } from './Summary';
 import { MoneyMap } from './MoneyMap';
 import { GrossComposition } from './GrossComposition';
 import { Contributions } from './Contributions';
-import { EmployerCost } from './EmployerCost';
+import { CostVsNet } from './CostVsNet';
 import { Anomalies } from './Anomalies';
 
 export function ResultsPage() {
@@ -52,13 +52,13 @@ export function ResultsPage() {
   return (
     <div className="space-y-4">
       <Summary analysis={analysis} />
+      {result.summary.canAnalyze && <CostVsNet payslip={payslip} />}
       <Anomalies result={result} />
       {result.summary.canAnalyze && (
         <>
           <MoneyMap payslip={payslip} />
           <GrossComposition payslip={payslip} />
           <Contributions payslip={payslip} result={result} />
-          <EmployerCost payslip={payslip} />
         </>
       )}
 

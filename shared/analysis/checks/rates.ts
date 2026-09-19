@@ -1,12 +1,47 @@
 import { approxEqual, formatEuro, formatPercent, roundCents } from '../../lib/money.js';
-import { DEFAULT_RATE_TOLERANCE_POINTS, RATES_2026, rateByCode, type RateRef } from '../../data/rates2026.js';
+import {
+  DEFAULT_RATE_TOLERANCE_POINTS,
+  RATES_2026,
+  rateByCode,
+  type RateRef,
+  type RateSpec,
+} from '../../data/rates2026.js';
 import { explainOf } from '../../data/explanations.fr.js';
 import { taxonomyByCode } from '../../data/taxonomy.js';
 import type { ContributionLine } from '../../parsing/model.js';
-import type { Finding } from '../findings.js';
+import type { Finding, PassedCheck } from '../findings.js';
 import { expectedBase, isExpected, resolveRate, type AnalysisContext } from '../context.js';
 
 const MIN_CONF = 0.55;
+
+type LinePart = NonNullable<ContributionLine['employee']>;
+
+/** Le taux lu peut-il être comparé au taux légal ? (partagé avec le décompte des points conformes) */
+function isRateComparable(
+  ctx: AnalysisContext,
+  part: LinePart,
+  spec: RateSpec | undefined,
+  expected: number | null,
+): boolean {
+  return (
+    ctx.periodCovered &&
+    expected != null &&
+    part.rate?.value != null &&
+    (part.rate.confidence ?? 0) >= MIN_CONF &&
+    spec?.kind !== 'variable'
+  );
+}
+
+/** Peut-on vérifier base × taux = montant sur cette part de ligne ? */
+function isCalcCheckable(part: LinePart, base: number | null): boolean {
+  return (
+    part.amount?.value != null &&
+    part.rate?.value != null &&
+    base != null &&
+    (part.amount.confidence ?? 0) >= MIN_CONF &&
+    (part.rate.confidence ?? 0) >= MIN_CONF
+  );
+}
 
 function whatToDo(): string {
   return 'À faire préciser par votre gestionnaire de paie.';
@@ -43,13 +78,7 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
       const base = lineBase(line, ref, ctx);
 
       // 1) Écart de taux — seulement si le bulletin est de l'année du référentiel
-      if (
-        ctx.periodCovered &&
-        expected != null &&
-        foundRate != null &&
-        (part.rate?.confidence ?? 0) >= MIN_CONF &&
-        spec?.kind !== 'variable'
-      ) {
+      if (isRateComparable(ctx, part, spec, expected) && expected != null && foundRate != null) {
         const isMin = spec?.kind === 'min';
         const off = isMin ? foundRate < expected - tol : !approxEqual(foundRate, expected, tol);
         if (off) {
@@ -82,13 +111,7 @@ export function checkRateLines(ctx: AnalysisContext): Finding[] {
 
       // 2) Cohérence base × taux = montant
       const amount = part.amount?.value;
-      if (
-        amount != null &&
-        foundRate != null &&
-        base != null &&
-        (part.amount?.confidence ?? 0) >= MIN_CONF &&
-        (part.rate?.confidence ?? 0) >= MIN_CONF
-      ) {
+      if (isCalcCheckable(part, base) && amount != null && foundRate != null && base != null) {
         // `amount` est toujours une magnitude positive (voir fromRaw.ts/extract.ts) ;
         // `base` peut être négative (régularisation) — on compare donc en valeur absolue.
         const theoretical = Math.abs(roundCents((base * foundRate) / 100));
@@ -209,6 +232,79 @@ export function checkUnknownLines(ctx: AnalysisContext): Finding[] {
     });
   }
   return findings;
+}
+
+/**
+ * Clés `canonique:côté` distinctes réellement comparées / vérifiées. Une ligne de
+ * régularisation partage le canonique de la ligne principale : on compte des clés
+ * (comme les ids des constats, dédupliqués), pas des lignes.
+ */
+function checkedKeys(ctx: AnalysisContext): { rates: Set<string>; calcs: Set<string> } {
+  const rates = new Set<string>();
+  const calcs = new Set<string>();
+  for (const line of ctx.payslip.contributions) {
+    if (!line.canonical) continue;
+    const ref = rateByCode(line.canonical);
+    if (!ref) continue;
+    for (const side of ['employee', 'employer'] as const) {
+      const part = line[side];
+      if (!part) continue;
+      const spec = ref[side];
+      const key = `${line.canonical}:${side}`;
+      if (isRateComparable(ctx, part, spec, resolveRate(spec, ctx))) rates.add(key);
+      if (isCalcCheckable(part, lineBase(line, ref, ctx))) calcs.add(key);
+    }
+  }
+  return { rates, calcs };
+}
+
+/** Taux et calculs base × taux : ce qui a été vérifié sans écart. */
+export function passedRateChecks(ctx: AnalysisContext, findings: Finding[]): PassedCheck[] {
+  const { rates, calcs } = checkedKeys(ctx);
+  const off = (prefix: string) =>
+    new Set(findings.filter((f) => f.id.startsWith(`${prefix}:`)).map((f) => f.id.slice(prefix.length + 1)));
+  const out: PassedCheck[] = [];
+
+  const offRates = off('taux');
+  const okRates = [...rates].filter((k) => !offRates.has(k)).length;
+  if (okRates > 0) {
+    out.push({
+      id: 'ok:taux',
+      title:
+        offRates.size === 0
+          ? `Taux de cotisations conformes au barème ${ctx.referenceYear}`
+          : `${okRates} autre${okRates > 1 ? 's' : ''} taux conforme${okRates > 1 ? 's' : ''} au barème ${ctx.referenceYear}`,
+      detail: `${okRates} taux lus sur le bulletin comparés au barème légal, sans écart.`,
+    });
+  }
+
+  const offCalcs = off('calc');
+  const okCalcs = [...calcs].filter((k) => !offCalcs.has(k)).length;
+  if (okCalcs > 0) {
+    out.push({
+      id: 'ok:calcul',
+      title:
+        offCalcs.size === 0
+          ? 'Chaque montant correspond à base × taux'
+          : `${okCalcs} autre${okCalcs > 1 ? 's' : ''} montant${okCalcs > 1 ? 's' : ''} cohérent${okCalcs > 1 ? 's' : ''} avec base × taux`,
+      detail: `${okCalcs} lignes de cotisation recalculées, sans écart.`,
+    });
+  }
+  return out;
+}
+
+/** Cotisations obligatoires : présentes, si le contrôle a pu s'exécuter. */
+export function passedMissingCheck(ctx: AnalysisContext, findings: Finding[]): PassedCheck[] {
+  if (!ctx.periodCovered) return [];
+  if (ctx.payslip.contributions.length < 5 || ctx.payslip.meta.parseConfidence < 0.6) return [];
+  if (findings.some((f) => f.code === 'COTISATION_MANQUANTE')) return [];
+  return [
+    {
+      id: 'ok:presentes',
+      title: 'Cotisations obligatoires présentes',
+      detail: 'Toutes les cotisations attendues pour votre statut figurent sur le bulletin.',
+    },
+  ];
 }
 
 function assietteLabel(kind: RateRef['assiette']): string {

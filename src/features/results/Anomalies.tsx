@@ -11,12 +11,18 @@ export function Anomalies({ result }: { result: AnalysisResult }) {
   );
   const { periodCovered, referenceYear, conventionLabel, conventionSource } = result.summary;
   const isBTP = isBatimentTP(conventionLabel);
+  const passed = result.passed ?? [];
+
+  const hint = [
+    actionable.length > 0 && `${actionable.length} à examiner`,
+    passed.length > 0 && `${passed.length} conforme${passed.length > 1 ? 's' : ''}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Card>
-      <SectionTitle hint={`${actionable.length} point${actionable.length > 1 ? 's' : ''}`}>
-        Ce que nous avons remarqué
-      </SectionTitle>
+      <SectionTitle hint={hint || undefined}>Audit de votre paie</SectionTitle>
 
       {actionable.length === 0 ? (
         <div className="flex items-center gap-2 rounded-xl bg-brand-50 p-3 text-sm dark:bg-brand-950/40">
@@ -77,6 +83,32 @@ export function Anomalies({ result }: { result: AnalysisResult }) {
                 </div>
               )}
                 <p className="mt-1.5 text-sm text-muted">{f.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {passed.length > 0 && (
+        <>
+          {actionable.length > 0 && (
+            <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted">
+              Points vérifiés, conformes
+            </p>
+          )}
+          <ul className={actionable.length > 0 ? 'space-y-2' : 'mt-3 space-y-2'}>
+            {passed.map((p) => (
+              <li
+                key={p.id}
+                className="flex gap-2.5 rounded-xl border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-900/60 dark:bg-brand-950/25"
+              >
+                <span className="mt-0.5 shrink-0">
+                  <OkIcon size={18} />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">{p.title}</p>
+                  <p className="text-xs text-muted">{p.detail}</p>
+                </div>
               </li>
             ))}
           </ul>

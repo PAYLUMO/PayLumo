@@ -1,9 +1,43 @@
 import { Link } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { RotateCcw, Sparkles } from 'lucide-react';
 import { formatSignedEuro } from '@shared/lib/money';
-import { Badge, Card } from '@/components/ui';
+import { Badge, Button, Card } from '@/components/ui';
 import type { StoredAnalysis } from '@shared/analysis/types';
-import { ConfidencePill, OkIcon, SeverityIcon } from './shared';
+import { OkIcon, SeverityIcon } from './shared';
+
+/** Anneau de fiabilité de la lecture du bulletin (0–1). */
+function ReadRing({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  const color = pct >= 80 ? '#288d3f' : pct >= 55 ? '#d97706' : '#dc2626';
+  return (
+    <div
+      className="relative h-16 w-16 shrink-0"
+      role="img"
+      aria-label={`Fiabilité de la lecture du bulletin : ${pct} %`}
+    >
+      <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90" aria-hidden="true">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-[rgb(var(--border))]" />
+        <circle
+          cx="32"
+          cy="32"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - pct / 100)}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+        <span className="text-sm font-extrabold tabular-nums">{pct} %</span>
+        <span className="mt-0.5 text-[9px] text-muted">lecture</span>
+      </div>
+    </div>
+  );
+}
 
 export function Summary({ analysis }: { analysis: StoredAnalysis }) {
   const { result, payslip, label } = analysis;
@@ -46,33 +80,42 @@ export function Summary({ analysis }: { analysis: StoredAnalysis }) {
 
   return (
     <Card className={tone}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-          <h1 className="mt-1 flex items-center gap-2 text-lg font-extrabold sm:text-xl">
-            {!canAnalyze ? (
-              <SeverityIcon severity="avertissement" size={22} />
-            ) : !periodCovered ? (
-              <SeverityIcon severity="info" size={22} />
-            ) : nAnom === 0 && nCheck === 0 ? (
-              <OkIcon size={22} />
+      <div className="flex items-center gap-4">
+        <ReadRing value={result.summary.readConfidence} />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-extrabold sm:text-xl">Analyse de votre bulletin</h1>
+          <p className="mt-0.5 truncate text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+          <div className="mt-1.5">
+            {analysis.reader === 'ai' ? (
+              <Badge tone="info">
+                <Sparkles size={12} /> Lu par l’IA
+              </Badge>
             ) : (
-              <SeverityIcon severity={nAnom > 0 ? 'erreur' : 'avertissement'} size={22} />
+              <Badge tone="neutral">Lu en local</Badge>
             )}
-            {headline}
-          </h1>
+          </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <ConfidencePill value={result.summary.readConfidence} />
-          {analysis.reader === 'ai' ? (
-            <Badge tone="info">
-              <Sparkles size={12} /> Lu par l’IA
-            </Badge>
-          ) : (
-            <Badge tone="neutral">Lu en local</Badge>
-          )}
-        </div>
+        <Link to="/analyser" className="shrink-0" aria-label="Nouvelle analyse">
+          <Button variant="secondary" size="sm">
+            <RotateCcw size={15} />
+            <span className="hidden sm:inline">Nouvelle analyse</span>
+            <span className="sm:hidden">Nouveau</span>
+          </Button>
+        </Link>
       </div>
+
+      <p className="mt-4 flex items-center gap-2 text-base font-bold">
+        {!canAnalyze ? (
+          <SeverityIcon severity="avertissement" size={20} />
+        ) : !periodCovered ? (
+          <SeverityIcon severity="info" size={20} />
+        ) : nAnom === 0 && nCheck === 0 ? (
+          <OkIcon size={20} />
+        ) : (
+          <SeverityIcon severity={nAnom > 0 ? 'erreur' : 'avertissement'} size={20} />
+        )}
+        {headline}
+      </p>
 
       {canAnalyze && periodCovered && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">

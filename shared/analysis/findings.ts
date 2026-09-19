@@ -63,8 +63,17 @@ export interface AnalysisSummary {
   conventionSource: 'user' | 'detected' | 'none';
 }
 
+/** Un contrôle réellement exécuté, sans écart constaté (affiché en « conforme »). */
+export interface PassedCheck {
+  id: string;
+  title: string;
+  detail: string;
+}
+
 export interface AnalysisResult {
   findings: Finding[];
+  /** absent sur les analyses enregistrées avant l'introduction de cette liste. */
+  passed?: PassedCheck[];
   summary: AnalysisSummary;
 }
 

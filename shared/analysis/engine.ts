@@ -1,12 +1,13 @@
 import type { Payslip } from '../parsing/model.js';
 import { REFERENCE_YEAR } from '../data/params.js';
 import { buildContext } from './context.js';
-import { CHECKS } from './checks/index.js';
+import { CHECKS, collectPassed } from './checks/index.js';
 import {
   sortFindings,
   summarize,
   type AnalysisResult,
   type Finding,
+  type PassedCheck,
 } from './findings.js';
 
 export interface AnalyzeOptions {
@@ -58,6 +59,7 @@ export function analyzePayslip(payslip: Payslip, opts: AnalyzeOptions = {}): Ana
     };
     return {
       findings: [finding],
+      passed: [],
       summary: summarize([finding], payslip.meta.parseConfidence, false, summaryOpts),
     };
   }
@@ -100,8 +102,16 @@ export function analyzePayslip(payslip: Payslip, opts: AnalyzeOptions = {}): Ana
   for (const f of findings) if (!byId.has(f.id)) byId.set(f.id, f);
   const unique = sortFindings([...byId.values()]);
 
+  let passed: PassedCheck[] = [];
+  try {
+    passed = collectPassed(ctx, unique);
+  } catch {
+    /* un point « conforme » manquant vaut mieux qu'une analyse en échec */
+  }
+
   return {
     findings: unique,
+    passed,
     summary: summarize(unique, payslip.meta.parseConfidence, true, summaryOpts),
   };
 }
