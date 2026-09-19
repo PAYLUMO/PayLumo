@@ -6,9 +6,9 @@
  * référentiel. Les champs présents reçoivent une confiance forte.
  */
 
-import { matchCanonical } from '../data/taxonomy';
-import type { RawExtraction } from '../extraction';
-import { isSummaryOrHeaderLabel } from './summaryLabels';
+import { matchCanonical } from '../data/taxonomy.js';
+import type { RawExtraction } from '../extraction.js';
+import { isSummaryOrHeaderLabel } from './summaryLabels.js';
 import {
   valued,
   type ContribCategory,
@@ -17,7 +17,7 @@ import {
   type GrossItem,
   type Payslip,
   type SocialRegime,
-} from './model';
+} from './model.js';
 
 const C = 0.9;
 

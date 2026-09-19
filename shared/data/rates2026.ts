@@ -13,8 +13,8 @@
  * PMSS 3 925 € → 4 005 €.
  */
 
-import type { ContribCategory, EmployeeStatus, SocialRegime } from '../parsing/model';
-import type { CanonicalCode } from './taxonomy';
+import type { ContribCategory, EmployeeStatus, SocialRegime } from '../parsing/model.js';
+import type { CanonicalCode } from './taxonomy.js';
 
 export type AssietteKind =
   | 'brut_total'

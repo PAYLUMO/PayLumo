@@ -9,10 +9,10 @@
  * droit (les montants sont alignés à droite).
  */
 
-import { parseFrNumber, looksNumeric, roundCents } from '../lib/money';
-import { matchCanonical, normalizeLabel } from '../data/taxonomy';
-import { isSummaryOrHeaderLabel } from './summaryLabels';
-import type { Cell, PdfDocumentText, TextLine } from './pdf-core';
+import { parseFrNumber, looksNumeric, roundCents } from '../lib/money.js';
+import { matchCanonical, normalizeLabel } from '../data/taxonomy.js';
+import { isSummaryOrHeaderLabel } from './summaryLabels.js';
+import type { Cell, PdfDocumentText, TextLine } from './pdf-core.js';
 import {
   valued,
   type Confidence,
@@ -23,7 +23,7 @@ import {
   type GrossItemKind,
   type Payslip,
   type SocialRegime,
-} from './model';
+} from './model.js';
 
 const MONTHS: Record<string, number> = {
   janvier: 1, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6,

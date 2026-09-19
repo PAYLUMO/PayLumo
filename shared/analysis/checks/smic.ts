@@ -1,7 +1,7 @@
-import { formatEuro, roundCents } from '../../lib/money';
-import { DUREE_LEGALE_MENSUELLE } from '../../data/params';
-import type { Finding } from '../findings';
-import type { AnalysisContext } from '../context';
+import { formatEuro, roundCents } from '../../lib/money.js';
+import { DUREE_LEGALE_MENSUELLE } from '../../data/params.js';
+import type { Finding } from '../findings.js';
+import type { AnalysisContext } from '../context.js';
 
 /** Le salaire respecte-t-il le SMIC applicable à la période ? */
 export function checkSmic(ctx: AnalysisContext): Finding[] {

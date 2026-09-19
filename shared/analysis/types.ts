@@ -1,5 +1,5 @@
-import type { Payslip } from '../parsing/model';
-import type { AnalysisResult } from './findings';
+import type { Payslip } from '../parsing/model.js';
+import type { AnalysisResult } from './findings.js';
 
 /** Une analyse complète, telle que stockée localement (IndexedDB). */
 export interface StoredAnalysis {

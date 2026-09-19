@@ -1,8 +1,8 @@
-import type { Finding } from '../findings';
-import type { AnalysisContext } from '../context';
-import { checkMissing, checkRateLines, checkUnknownLines } from './rates';
-import { checkGrossComposition, checkGrossToNet, checkPas } from './coherence';
-import { checkPlafond, checkSmic } from './smic';
+import type { Finding } from '../findings.js';
+import type { AnalysisContext } from '../context.js';
+import { checkMissing, checkRateLines, checkUnknownLines } from './rates.js';
+import { checkGrossComposition, checkGrossToNet, checkPas } from './coherence.js';
+import { checkPlafond, checkSmic } from './smic.js';
 
 export type Check = (ctx: AnalysisContext) => Finding[];
 

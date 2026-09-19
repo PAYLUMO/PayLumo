@@ -1,5 +1,5 @@
-import type { ContribCategory } from '../parsing/model';
-import { REFERENCE_YEAR } from '../data/params';
+import type { ContribCategory } from '../parsing/model.js';
+import { REFERENCE_YEAR } from '../data/params.js';
 
 export type Severity = 'erreur' | 'avertissement' | 'info';
 

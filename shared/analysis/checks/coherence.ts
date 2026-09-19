@@ -1,6 +1,6 @@
-import { approxEqual, formatEuro, roundCents } from '../../lib/money';
-import type { Finding } from '../findings';
-import type { AnalysisContext } from '../context';
+import { approxEqual, formatEuro, roundCents } from '../../lib/money.js';
+import type { Finding } from '../findings.js';
+import type { AnalysisContext } from '../context.js';
 
 const whatToDo =
   'Un écart modéré est souvent normal (ligne non lue, régularisation…). À faire préciser par votre gestionnaire de paie.';

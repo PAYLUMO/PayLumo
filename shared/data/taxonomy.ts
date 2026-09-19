@@ -5,7 +5,7 @@
  * explications pédagogiques (`explanations.fr.ts`).
  */
 
-import type { ContribCategory, EmployeeStatus, SocialRegime } from '../parsing/model';
+import type { ContribCategory, EmployeeStatus, SocialRegime } from '../parsing/model.js';
 
 export type CanonicalCode =
   // Santé

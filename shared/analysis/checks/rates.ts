@@ -1,10 +1,10 @@
-import { approxEqual, formatEuro, formatPercent, roundCents } from '../../lib/money';
-import { DEFAULT_RATE_TOLERANCE_POINTS, RATES_2026, rateByCode, type RateRef } from '../../data/rates2026';
-import { explainOf } from '../../data/explanations.fr';
-import { taxonomyByCode } from '../../data/taxonomy';
-import type { ContributionLine } from '../../parsing/model';
-import type { Finding } from '../findings';
-import { expectedBase, isExpected, resolveRate, type AnalysisContext } from '../context';
+import { approxEqual, formatEuro, formatPercent, roundCents } from '../../lib/money.js';
+import { DEFAULT_RATE_TOLERANCE_POINTS, RATES_2026, rateByCode, type RateRef } from '../../data/rates2026.js';
+import { explainOf } from '../../data/explanations.fr.js';
+import { taxonomyByCode } from '../../data/taxonomy.js';
+import type { ContributionLine } from '../../parsing/model.js';
+import type { Finding } from '../findings.js';
+import { expectedBase, isExpected, resolveRate, type AnalysisContext } from '../context.js';
 
 const MIN_CONF = 0.55;
 

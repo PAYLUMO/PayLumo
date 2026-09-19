@@ -1,13 +1,13 @@
-import type { Payslip } from '../parsing/model';
-import { REFERENCE_YEAR } from '../data/params';
-import { buildContext } from './context';
-import { CHECKS } from './checks';
+import type { Payslip } from '../parsing/model.js';
+import { REFERENCE_YEAR } from '../data/params.js';
+import { buildContext } from './context.js';
+import { CHECKS } from './checks/index.js';
 import {
   sortFindings,
   summarize,
   type AnalysisResult,
   type Finding,
-} from './findings';
+} from './findings.js';
 
 export interface AnalyzeOptions {
   /** année du référentiel de taux (défaut : la seule disponible). */

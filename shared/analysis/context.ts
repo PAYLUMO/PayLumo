@@ -6,10 +6,10 @@ import {
   tranches,
   type SmicPeriod,
   type TrancheBornes,
-} from '../data/params';
-import type { AssietteKind, RateRef, RateSpec } from '../data/rates2026';
-import { detectConvention, findConventionByLabel, isBatimentTP } from '../data/conventions';
-import type { Payslip } from '../parsing/model';
+} from '../data/params.js';
+import type { AssietteKind, RateRef, RateSpec } from '../data/rates2026.js';
+import { detectConvention, findConventionByLabel, isBatimentTP } from '../data/conventions.js';
+import type { Payslip } from '../parsing/model.js';
 
 export type ConventionSource = 'user' | 'detected' | 'none';
 

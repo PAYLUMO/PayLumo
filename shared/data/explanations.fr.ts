@@ -3,8 +3,8 @@
  * Rédigés en langage clair, millésime 2026.
  */
 
-import type { ContribCategory } from '../parsing/model';
-import type { CanonicalCode } from './taxonomy';
+import type { ContribCategory } from '../parsing/model.js';
+import type { CanonicalCode } from './taxonomy.js';
 
 export interface CategoryExplain {
   title: string;
