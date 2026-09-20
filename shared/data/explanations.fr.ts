@@ -241,27 +241,65 @@ export const EXPLAIN: Partial<Record<CanonicalCode, CotisationExplain>> = {
   },
 };
 
-/** « Nets » et prélèvement à la source — à quoi chaque montant sert concrètement. */
-export const NET_EXPLAIN = {
-  netImposable: {
+/** Montants du bulletin utiles pour les démarches (impôts, CAF/MSA, dossiers) : définition et usages. */
+export interface DeclarationHelp {
+  title: string;
+  /** autre nom courant, affiché à côté du titre. */
+  alias?: string;
+  definition: string;
+  uses: string[];
+}
+
+export const DECLARATION_HELP = {
+  gross: {
+    title: 'Salaire brut',
+    definition:
+      'La rémunération prévue par votre contrat, avant toute retenue : salaire de base, primes, heures supplémentaires et avantages en nature, moins les absences non rémunérées.',
+    uses: [
+      'Base de calcul des cotisations sociales : c’est le premier montant à vérifier sur un bulletin.',
+      'À comparer à votre contrat et à vos avenants (augmentations, primes).',
+      'Souvent demandé, avec le net, pour un dossier de prêt ou de location ; le brut annuel sert aussi à comparer une offre d’emploi ou une augmentation.',
+    ],
+  },
+  netTaxable: {
     title: 'Net imposable',
-    summary:
-      'La base que votre employeur déclare aux impôts : cumulée sur l’année, elle pré-remplit votre déclaration de revenus.',
-    finance:
-      'C’est le salaire brut diminué des cotisations sociales déductibles, puis augmenté de la CSG/CRDS non déductible et de certains avantages. Chaque mois, l’employeur transmet ce montant à l’administration fiscale (DSN). Le cumul de janvier à décembre est le chiffre qui apparaît pré-rempli sur votre déclaration de revenus l’année suivante — à vérifier, et à compléter si vous avez d’autres revenus.',
+    alias: 'net fiscal',
+    definition:
+      'Le revenu retenu par l’administration fiscale : votre brut moins les cotisations sociales déductibles, auquel on ajoute la CSG et la CRDS non déductibles (et la part patronale de mutuelle ou de prévoyance, le cas échéant). Il est donc un peu plus élevé que le net avant impôt.',
+    uses: [
+      'Base de calcul de votre prélèvement à la source, puis de votre impôt sur le revenu.',
+      'Votre employeur le transmet chaque mois à l’administration (DSN) : le total de l’année pré-remplit la rubrique « Traitements et salaires » de votre déclaration de revenus.',
+      'À vérifier au moment de déclarer : ce total doit correspondre au cumul de votre bulletin de décembre. Avec plusieurs employeurs ou des allocations chômage, additionnez.',
+    ],
   },
   netSocial: {
     title: 'Net social',
-    summary:
-      'Le montant à indiquer pour vos droits sociaux (RSA, prime d’activité) — affiché sur les bulletins depuis juillet 2023.',
-    finance:
-      'Il simplifie les démarches auprès de la CAF ou de la MSA : plus besoin de recalculer vos ressources à partir du bulletin, il suffit de reporter ce montant chaque trimestre. Il ne sert ni à vos impôts ni à votre net à payer — c’est une information complémentaire, propre aux prestations sociales.',
+    definition:
+      'Le montant de référence pour vos droits sociaux, affiché sur les bulletins depuis juillet 2023. Il est proche du net avant impôt mais calculé selon les règles des prestations sociales : il peut légèrement différer.',
+    uses: [
+      'À reporter dans vos déclarations de ressources à la CAF ou à la MSA (prime d’activité, RSA, aides au logement…) : plus besoin de recalculer vos ressources à partir du bulletin.',
+      'Ces déclarations portent en général sur les 3 derniers mois : additionnez les trois derniers bulletins.',
+      'Il ne sert ni à l’impôt, ni à connaître votre net à payer.',
+    ],
   },
   pas: {
-    title: 'Prélèvement à la source (PAS)',
-    summary:
-      'L’impôt sur le revenu déjà prélevé sur ce bulletin, selon le taux transmis par les impôts.',
-    finance:
-      'Le taux peut être personnalisé (calculé par l’administration fiscale sur vos revenus précédents), individualisé (couple : un taux par personne) ou neutre / non personnalisé (grille par défaut, souvent plus élevée, appliquée quand votre taux réel n’a pas encore été transmis — modifiable à tout moment sur impots.gouv.fr). Ce prélèvement est régularisé chaque année lors de votre déclaration de revenus.',
+    title: 'Impôt prélevé à la source',
+    alias: 'PAS',
+    definition:
+      'L’acompte d’impôt sur le revenu retenu chaque mois par votre employeur et reversé aux impôts, selon le taux que l’administration lui a transmis (personnalisé, individualisé ou taux par défaut).',
+    uses: [
+      'C’est de l’impôt déjà payé : il se déduit de l’impôt réellement dû lorsque vous déclarez vos revenus. S’il a été trop prélevé, vous êtes remboursé ; sinon, vous payez le solde.',
+      'Le total de l’année est rappelé sur votre avis d’impôt : comparez-le au cumul de votre bulletin de décembre.',
+    ],
   },
-} as const satisfies Record<string, CategoryExplain>;
+  netPaid: {
+    title: 'Net à payer',
+    alias: 'net versé',
+    definition:
+      'Ce qui est réellement versé sur votre compte : le net avant impôt moins le prélèvement à la source (et les éventuelles autres retenues : acompte, saisie…).',
+    uses: [
+      'Vos revenus réels du mois : c’est le montant qu’on demande le plus souvent pour un dossier de location ou de crédit, et celui de votre budget.',
+      'Ce n’est pas le montant de la déclaration de revenus : celui-là, c’est le net imposable.',
+    ],
+  },
+} as const satisfies Record<string, DeclarationHelp>;

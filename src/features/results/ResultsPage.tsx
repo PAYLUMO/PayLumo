@@ -9,6 +9,7 @@ import { MoneyMap } from './MoneyMap';
 import { GrossComposition } from './GrossComposition';
 import { Contributions } from './Contributions';
 import { CostVsNet } from './CostVsNet';
+import { Declarations } from './Declarations';
 import { PasCheck } from './PasCheck';
 import { Positioning } from './Positioning';
 import { Anomalies } from './Anomalies';
@@ -62,6 +63,7 @@ export function ResultsPage() {
           <MoneyMap payslip={payslip} />
           <GrossComposition payslip={payslip} />
           <Contributions payslip={payslip} result={result} />
+          <Declarations payslip={payslip} />
           <Positioning payslip={payslip} />
         </>
       )}
