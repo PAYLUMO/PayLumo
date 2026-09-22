@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calculator, ChevronDown, FileSearch } from 'lucide-react';
 import { Button, Card, SectionTitle, cx } from '@/components/ui';
 import { formatEuro, formatPercent } from '@shared/lib/money';
-import { grossFromNet, grossToNet, type NetKind, type Statut } from '@shared/calc/grossNet';
+import { grossFromNet, grossToNet, type NetKind } from '@shared/calc/grossNet';
 import { PAS_GRID_EFFECTIVE_FROM } from '@shared/data/pasGrid';
 import { PMSS, smicAt } from '@shared/data/params';
 
@@ -15,6 +15,12 @@ const fieldCx =
 
 /** Exemples de la table de correspondance (le SMIC est ajouté en tête). */
 const TABLE_GROSS = [2000, 2200, 2500, 2800, 3000, 3500, 4000, 4500, 5000, 6000, 8000];
+
+// Cadre ou non-cadre : depuis la fusion Agirc-Arrco de 2019, la retraite
+// complémentaire se cotise au même taux pour tous — l'écart légal restant
+// (l'APEC, 0,024 % côté salarié) est trop faible pour justifier un réglage.
+// Voir « Comment lire ce calcul » plus bas.
+const STATUT = 'non-cadre' as const;
 
 function parseAmount(s: string): number {
   const n = Number(s.replace(/\s/g, '').replace(',', '.'));
@@ -57,7 +63,6 @@ export function CalculatorPage() {
   const [netKind, setNetKind] = useState<NetKind>('beforeTax');
   const [amountStr, setAmountStr] = useState('2500');
   const [period, setPeriod] = useState<Period>('month');
-  const [statut, setStatut] = useState<Statut>('non-cadre');
   const [otherStr, setOtherStr] = useState('');
   const [pasCustom, setPasCustom] = useState(false);
   const [pasStr, setPasStr] = useState('');
@@ -66,27 +71,31 @@ export function CalculatorPage() {
   const monthlyInput = period === 'year' ? amount / 12 : amount;
   const other = parseAmount(otherStr);
   const pasRate = pasCustom && pasStr.trim() !== '' ? Number(pasStr.replace(',', '.')) : null;
-  const opts = { statut, otherDeductions: other, pasRate: pasRate != null && Number.isFinite(pasRate) ? pasRate : null };
+  const opts = {
+    statut: STATUT,
+    otherDeductions: other,
+    pasRate: pasRate != null && Number.isFinite(pasRate) ? pasRate : null,
+  };
 
   const grossMonthly = useMemo(
     () => (mode === 'gross' ? monthlyInput : grossFromNet(monthlyInput, netKind, opts)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, monthlyInput, netKind, statut, other, pasRate],
+    [mode, monthlyInput, netKind, other, pasRate],
   );
   const r = useMemo(
     () => (grossMonthly != null && grossMonthly > 0 ? grossToNet({ ...opts, grossMonthly }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grossMonthly, statut, other, pasRate],
+    [grossMonthly, other, pasRate],
   );
 
   const smicGross = smicAt(new Date().toISOString().slice(0, 10)).mensuel151_67;
   const table = useMemo(
     () =>
       [smicGross, ...TABLE_GROSS].map((g) => {
-        const t = grossToNet({ statut, grossMonthly: g });
+        const t = grossToNet({ statut: STATUT, grossMonthly: g });
         return { gross: g, before: t.netBeforeTax, paid: t.netPaid };
       }),
-    [statut, smicGross],
+    [smicGross],
   );
 
   const sliderMin = period === 'year' ? 12000 : 1000;
@@ -169,19 +178,6 @@ export function CalculatorPage() {
             value={Math.min(sliderMax, Math.max(sliderMin, amount || sliderMin))}
             onChange={(e) => setAmountStr(e.target.value)}
             className="mt-3 w-full accent-brand-600"
-          />
-        </div>
-
-        <div>
-          <p className="mb-1 text-sm font-medium">Statut</p>
-          <Segmented
-            label="Statut"
-            value={statut}
-            onChange={setStatut}
-            options={[
-              { value: 'non-cadre', label: 'Non-cadre' },
-              { value: 'cadre', label: 'Cadre' },
-            ]}
           />
         </div>
 
@@ -308,7 +304,7 @@ export function CalculatorPage() {
       </Card>
 
       <Card>
-        <SectionTitle hint={statut === 'cadre' ? 'cadre' : 'non-cadre'}>Brut → net, repères 2026</SectionTitle>
+        <SectionTitle>Brut → net, repères 2026</SectionTitle>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[19rem] text-sm">
             <thead>
@@ -342,8 +338,13 @@ export function CalculatorPage() {
         <p className="text-muted">
           Le calcul reprend le barème légal 2026 de PayLumo : retraite de base (6,90 % jusqu’au
           plafond mensuel de la Sécurité sociale, {formatEuro(PMSS, 0)}, puis 0,40 % sur tout le
-          salaire), retraite complémentaire Agirc-Arrco et contributions d’équilibre, APEC pour un
-          cadre, et CSG/CRDS (9,7 % calculés sur 98,25 % du brut).
+          salaire), retraite complémentaire Agirc-Arrco et contributions d’équilibre, et CSG/CRDS
+          (9,7 % calculés sur 98,25 % du brut). Cadre ou non-cadre, ce calcul légal est identique :
+          depuis la fusion de l’Agirc (l’ancienne caisse de retraite complémentaire réservée aux
+          cadres, à taux plus élevé) avec l’Arrco au 1ᵉʳ janvier 2019, un seul régime s’applique à
+          tous, au même taux. Le repère « ~22 % non-cadre / ~25 % cadre » que vous avez peut-être en
+          tête date d’avant cette fusion ; ce qui différencie un vrai bulletin aujourd’hui, c’est la
+          prévoyance et la mutuelle — des cotisations contractuelles, propres à chaque entreprise.
         </p>
         <p className="text-muted">
           Le <strong className="text-[rgb(var(--text))]">prélèvement à la source</strong> s’applique
@@ -364,9 +365,7 @@ export function CalculatorPage() {
           <strong className="text-[rgb(var(--text))]">Estimation, pas votre net exact.</strong> Ne sont
           pas pris en compte : la convention collective, les heures supplémentaires, le régime
           Alsace-Moselle, les avantages en nature et la réintégration de la part patronale de
-          mutuelle. Le statut cadre/non-cadre change peu la part légale (APEC seulement) : l’écart
-          constaté sur les bulletins vient surtout de la prévoyance et de la mutuelle, à saisir dans
-          « Affiner ».
+          mutuelle.
         </p>
 
         <div className="divide-y divide-[rgb(var(--border))] border-t border-[rgb(var(--border))]">
