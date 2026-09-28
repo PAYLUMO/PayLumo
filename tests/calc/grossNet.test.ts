@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { grossFromNet, grossToNet } from '@shared/calc/grossNet';
+import { grossFromNet, grossFromNetFlat, grossToNet, grossToNetFlat } from '@shared/calc/grossNet';
 import { neutralPasRate } from '@shared/data/pasGrid';
 
 const base = { statut: 'non-cadre' as const };
@@ -109,5 +109,64 @@ describe('grossFromNet — aller-retour', () => {
     expect(grossFromNet(0, 'beforeTax', base)).toBeNull();
     expect(grossFromNet(-10, 'paid', base)).toBeNull();
     expect(grossFromNet(1e9, 'beforeTax', base)).toBeNull();
+  });
+});
+
+describe('grossToNetFlat — taux de charges choisi librement', () => {
+  it('22 % de 3 000 € : cotisations = brut × taux, exactement', () => {
+    const r = grossToNetFlat({ grossMonthly: 3000, chargeRatePct: 22 });
+    expect(r.contributions).toBe(660);
+    expect(r.netBeforeTax).toBe(2340);
+    // réintégration CSG non déd. (2,4 %) + CRDS (0,5 %) sur l'assiette CSG (98,25 % du brut)
+    expect(r.netTaxable).toBeCloseTo(2425.48, 1);
+    expect(r.pasRate).toBe(5.3); // grille officielle pour cette base
+    expect(r.pasIsDefault).toBe(true);
+    expect(r.netPaid).toBeCloseTo(2211.45, 1);
+  });
+
+  it('taux extrême (80 %), explicitement autorisé', () => {
+    const r = grossToNetFlat({ grossMonthly: 3000, chargeRatePct: 80 });
+    expect(r.contributions).toBe(2400);
+    expect(r.netBeforeTax).toBe(600);
+    expect(r.netPaid).toBeLessThanOrEqual(600);
+  });
+
+  it('taux hors bornes [0, 100] : ramené à la borne la plus proche', () => {
+    expect(grossToNetFlat({ grossMonthly: 3000, chargeRatePct: 150 }).contributions).toBe(3000);
+    expect(grossToNetFlat({ grossMonthly: 3000, chargeRatePct: -10 }).contributions).toBe(0);
+  });
+
+  it('mutuelle / prévoyance et taux de PAS personnalisé : comme en calcul détaillé', () => {
+    const withOther = grossToNetFlat({ grossMonthly: 3000, chargeRatePct: 22, otherDeductions: 40 });
+    expect(withOther.netBeforeTax).toBe(2300);
+    expect(withOther.netPaid).toBeCloseTo(2173.57, 1);
+
+    const custom = grossToNetFlat({ grossMonthly: 3000, chargeRatePct: 22, pasRate: 7 });
+    expect(custom.pasIsDefault).toBe(false);
+    expect(custom.pasRate).toBe(7);
+    expect(custom.pas).toBeCloseTo(169.78, 1);
+  });
+
+  it('brut nul : tout à zéro, jamais d’erreur', () => {
+    const r = grossToNetFlat({ grossMonthly: 0, chargeRatePct: 22 });
+    expect([r.contributions, r.netBeforeTax, r.netPaid]).toEqual([0, 0, 0]);
+  });
+});
+
+describe('grossFromNetFlat — aller-retour à taux de charges choisi', () => {
+  it('retrouve le brut d’origine (net avant impôt et net à payer)', () => {
+    for (const rate of [10, 22, 45, 80]) {
+      for (const g of [1800, 3000, 5200]) {
+        const r = grossToNetFlat({ grossMonthly: g, chargeRatePct: rate });
+        expect(grossFromNetFlat(r.netBeforeTax, 'beforeTax', { chargeRatePct: rate })).toBeCloseTo(g, 1);
+        const backPaid = grossFromNetFlat(r.netPaid, 'paid', { chargeRatePct: rate })!;
+        expect(backPaid).toBeLessThanOrEqual(g + 0.01);
+      }
+    }
+  });
+
+  it('cibles impossibles : null', () => {
+    expect(grossFromNetFlat(0, 'beforeTax', { chargeRatePct: 22 })).toBeNull();
+    expect(grossFromNetFlat(1e9, 'beforeTax', { chargeRatePct: 22 })).toBeNull();
   });
 });

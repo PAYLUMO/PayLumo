@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Scale } from 'lucide-react';
-import { Card, SectionTitle, cx } from '@/components/ui';
+import { Card, SectionTitle } from '@/components/ui';
 import {
   AGE_BANDS,
   INSEE_YEAR,
@@ -20,28 +19,14 @@ import { DistributionBar } from './DistributionBar';
 const fieldCx =
   'mt-1 w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm focus:outline focus:outline-2 focus:outline-brand-500';
 
-/** Taux de charges salariales par défaut à l'ouverture : repère courant, à ajuster librement. */
-const DEFAULT_CHARGE_RATE = '22';
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, n));
-}
-
 export function ComparatorPage() {
-  const [salaryMode, setSalaryMode] = useState<'net' | 'gross'>('net');
   const [salary, setSalary] = useState('');
-  const [gross, setGross] = useState('');
-  const [chargeRate, setChargeRate] = useState(DEFAULT_CHARGE_RATE);
   const [metierId, setMetierId] = useState('');
   const [regionCode, setRegionCode] = useState('');
   const [ageBand, setAgeBand] = useState('');
   const [sexe, setSexe] = useState<Sexe>('nd');
 
-  const grossNum = Number(gross.replace(',', '.')) || 0;
-  const chargeRateNum = clamp(Number(chargeRate.replace(',', '.')) || 0, 0, 95);
-  const netFromGross = grossNum > 0 ? Math.round(grossNum * (1 - chargeRateNum / 100)) : 0;
-  const salaryNum =
-    salaryMode === 'net' ? Number(salary.replace(',', '.')) || 0 : netFromGross;
+  const salaryNum = Number(salary.replace(',', '.')) || 0;
 
   const estimate = useMemo(() => {
     if (!metierId || !regionCode) return null;
@@ -67,105 +52,23 @@ export function ComparatorPage() {
       </div>
 
       <Card className="space-y-3">
-        <div>
-          <div role="group" aria-label="Je saisis" className="inline-flex rounded-lg border border-[rgb(var(--border))] p-0.5 text-sm">
-            {(
-              [
-                ['net', 'Mon salaire net'],
-                ['gross', 'Mon salaire brut'],
-              ] as [typeof salaryMode, string][]
-            ).map(([v, l]) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={salaryMode === v}
-                onClick={() => setSalaryMode(v)}
-                className={cx(
-                  'rounded-md px-3 py-1.5 font-medium transition-colors',
-                  salaryMode === v ? 'bg-brand-600 text-white' : 'text-muted hover:surface-2',
-                )}
-              >
-                {l}
-              </button>
-            ))}
+        <label className="block text-sm font-medium">
+          Votre salaire net mensuel avant impôt
+          <div className="relative mt-1">
+            <input
+              inputMode="decimal"
+              value={salary}
+              onChange={(e) => setSalary(e.target.value.replace(/[^\d.,]/g, ''))}
+              placeholder="2 400"
+              className={fieldCx + ' pr-8'}
+            />
+            <span className="pointer-events-none absolute right-3 top-2 text-sm text-muted">€</span>
           </div>
-        </div>
-
-        {salaryMode === 'net' ? (
-          <label className="block text-sm font-medium">
-            Votre salaire net mensuel avant impôt
-            <div className="relative mt-1">
-              <input
-                inputMode="decimal"
-                value={salary}
-                onChange={(e) => setSalary(e.target.value.replace(/[^\d.,]/g, ''))}
-                placeholder="2 400"
-                className={fieldCx + ' pr-8'}
-              />
-              <span className="pointer-events-none absolute right-3 top-2 text-sm text-muted">€</span>
-            </div>
-            <span className="mt-1 block text-xs font-normal text-muted">
-              La ligne « net à payer avant impôt » de votre fiche de paie (avant prélèvement à la
-              source). C’est la base utilisée par l’INSEE.
-            </span>
-          </label>
-        ) : (
-          <div className="space-y-3">
-            <label className="block text-sm font-medium">
-              Votre salaire brut mensuel
-              <div className="relative mt-1">
-                <input
-                  inputMode="decimal"
-                  value={gross}
-                  onChange={(e) => setGross(e.target.value.replace(/[^\d.,]/g, ''))}
-                  placeholder="3 000"
-                  className={fieldCx + ' pr-8'}
-                />
-                <span className="pointer-events-none absolute right-3 top-2 text-sm text-muted">€</span>
-              </div>
-            </label>
-
-            <label className="block text-sm font-medium">
-              Taux de charges salariales
-              <div className="relative mt-1">
-                <input
-                  inputMode="decimal"
-                  value={chargeRate}
-                  onChange={(e) => setChargeRate(e.target.value.replace(/[^\d.,]/g, ''))}
-                  className={fieldCx + ' pr-8'}
-                />
-                <span className="pointer-events-none absolute right-3 top-2 text-sm text-muted">%</span>
-              </div>
-              <input
-                type="range"
-                aria-label="Ajuster le taux de charges"
-                min={0}
-                max={90}
-                step={1}
-                value={chargeRateNum}
-                onChange={(e) => setChargeRate(e.target.value)}
-                className="mt-2 w-full accent-brand-600"
-              />
-              <span className="mt-1 block text-xs font-normal text-muted">
-                ~22 % pour un non-cadre, ~25 % pour un cadre sont des repères courants — ajustez
-                librement selon votre situation.{' '}
-                <Link to="/calculateur" className="underline">
-                  Calcul détaillé
-                </Link>
-                .
-              </span>
-            </label>
-
-            {grossNum > 0 && (
-              <p className="rounded-xl surface-2 p-2.5 text-sm">
-                ≈ <strong>{formatEuro(netFromGross, 0)}</strong> net avant impôt{' '}
-                <span className="text-muted">
-                  ({formatEuro(grossNum, 0)} brut − {chargeRateNum.toLocaleString('fr-FR')} %)
-                </span>
-              </p>
-            )}
-          </div>
-        )}
+          <span className="mt-1 block text-xs font-normal text-muted">
+            La ligne « net à payer avant impôt » de votre fiche de paie (avant prélèvement à la
+            source). C’est la base utilisée par l’INSEE.
+          </span>
+        </label>
 
         <label className="block text-sm font-medium">
           Métier

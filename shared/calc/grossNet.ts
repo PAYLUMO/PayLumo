@@ -13,9 +13,13 @@
  */
 
 import { CSG_ABATTEMENT, CSG_ABATTEMENT_PLAFOND, PMSS, tranches } from '../data/params.js';
-import { RATES_2026, type AssietteKind } from '../data/rates2026.js';
+import { RATES_2026, rateByCode, type AssietteKind } from '../data/rates2026.js';
 import { neutralPasRate } from '../data/pasGrid.js';
 import { roundCents } from '../lib/money.js';
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
 
 export type Statut = 'cadre' | 'non-cadre';
 
@@ -179,31 +183,13 @@ export type NetKind = 'beforeTax' | 'paid';
 const MAX_GROSS = 200_000;
 
 /**
- * Net → brut mensuel : plus petit brut dont le net atteint la cible.
- *
- * Le net avant impôt croît avec le brut (aux seuils de plafond près) ; le net après
- * prélèvement à la source, lui, baisse ponctuellement quand le taux passe à la tranche
- * supérieure — plusieurs bruts peuvent alors donner un net proche, on retient le plus
- * bas. `null` si la cible est hors de portée.
+ * Plus petit brut dont `netAt(brut)` atteint `target` (recherche puis affinage au
+ * centime). Le net après prélèvement à la source baisse ponctuellement quand le taux
+ * passe à la tranche supérieure — plusieurs bruts peuvent alors donner un net proche,
+ * on retient le plus bas. `null` si la cible est hors de portée.
  */
-export function grossFromNet(
-  target: number,
-  kind: NetKind,
-  opts: Omit<CalcInput, 'grossMonthly'>,
-): number | null {
+function searchGrossForNet(target: number, netAt: (gross: number) => number): number | null {
   if (!(target > 0)) return null;
-  const rules = RULES[opts.statut];
-  const other = Math.max(0, opts.otherDeductions ?? 0);
-  const custom = opts.pasRate != null && Number.isFinite(opts.pasRate) ? Math.max(0, opts.pasRate) : null;
-
-  const netAt = (g: number): number => {
-    const { total, reintegrated } = apply(g, rules);
-    const nb = g - total - other;
-    if (kind === 'beforeTax') return nb;
-    const nt = nb + reintegrated;
-    const rate = custom ?? neutralPasRate(nt);
-    return nb - (Math.max(0, nt) * rate) / 100;
-  };
 
   let hi = -1;
   for (let g = 1; g <= MAX_GROSS; g++) {
@@ -214,7 +200,6 @@ export function grossFromNet(
   }
   if (hi < 0) return null;
 
-  // affinage au centime entre hi − 1 et hi
   let lo = hi - 1;
   let up = hi;
   for (let i = 0; i < 40; i++) {
@@ -223,4 +208,101 @@ export function grossFromNet(
     else lo = mid;
   }
   return roundCents(up);
+}
+
+/** Net → brut mensuel (calcul détaillé). */
+export function grossFromNet(
+  target: number,
+  kind: NetKind,
+  opts: Omit<CalcInput, 'grossMonthly'>,
+): number | null {
+  const rules = RULES[opts.statut];
+  const other = Math.max(0, opts.otherDeductions ?? 0);
+  const custom = opts.pasRate != null && Number.isFinite(opts.pasRate) ? Math.max(0, opts.pasRate) : null;
+
+  return searchGrossForNet(target, (g) => {
+    const { total, reintegrated } = apply(g, rules);
+    const nb = g - total - other;
+    if (kind === 'beforeTax') return nb;
+    const nt = nb + reintegrated;
+    const rate = custom ?? neutralPasRate(nt);
+    return nb - (Math.max(0, nt) * rate) / 100;
+  });
+}
+
+// ── Taux de charges libre ────────────────────────────────────────────────────
+// Remplace le détail du barème par un taux global choisi par l'utilisateur
+// (par exemple le repère courant « ~22 % » plutôt que le calcul ligne à ligne).
+// Seule la réintégration CSG non déductible (2,4 %) + CRDS (0,5 %) — des taux fixés
+// par la loi, indépendants du débat cadre/non-cadre — reste calculée précisément,
+// pour que le net imposable (et donc le prélèvement à la source) reste réaliste
+// même à un taux de charges choisi librement, y compris extrême.
+
+export interface FlatCalcInput {
+  /** salaire brut mensuel (€). */
+  grossMonthly: number;
+  /** taux de charges salariales total, en % du brut. */
+  chargeRatePct: number;
+  /** retenues salariales mensuelles de mutuelle / prévoyance (€), à lire sur le bulletin. */
+  otherDeductions?: number;
+  /** taux de prélèvement à la source personnalisé (%) ; sinon taux par défaut de la grille. */
+  pasRate?: number | null;
+}
+
+function fixedReintegrationRate(): number {
+  const nonDed = rateByCode('CSG_NON_DEDUCTIBLE')?.employee;
+  const crds = rateByCode('CRDS')?.employee;
+  return (
+    (nonDed?.kind === 'fixed' ? nonDed.rate : 2.4) + (crds?.kind === 'fixed' ? crds.rate : 0.5)
+  );
+}
+
+/** Brut mensuel → net, à partir d'un taux de charges choisi librement plutôt que du
+ *  détail du barème légal (voir `grossToNet`). */
+export function grossToNetFlat(input: FlatCalcInput): CalcResult {
+  const gross = Math.max(0, input.grossMonthly);
+  if (gross === 0) return { ...EMPTY, lines: [] };
+
+  const rate = clamp(input.chargeRatePct, 0, 100);
+  const other = Math.max(0, input.otherDeductions ?? 0);
+  const contributions = roundCents((gross * rate) / 100);
+  const netBeforeTax = roundCents(gross - contributions - other);
+  const reintegration = roundCents((csgBase(gross) * fixedReintegrationRate()) / 100);
+  const netTaxable = roundCents(netBeforeTax + reintegration);
+  const custom = input.pasRate != null && Number.isFinite(input.pasRate) ? Math.max(0, input.pasRate) : null;
+  const pasRate = custom ?? neutralPasRate(netTaxable);
+  const pas = roundCents((Math.max(0, netTaxable) * pasRate) / 100);
+
+  return {
+    gross,
+    lines: [],
+    contributions,
+    otherDeductions: other,
+    netBeforeTax,
+    netTaxable,
+    pasRate,
+    pasIsDefault: custom == null,
+    pas,
+    netPaid: roundCents(netBeforeTax - pas),
+  };
+}
+
+/** Net → brut mensuel, à taux de charges choisi librement. */
+export function grossFromNetFlat(
+  target: number,
+  kind: NetKind,
+  opts: Omit<FlatCalcInput, 'grossMonthly'>,
+): number | null {
+  const rate = clamp(opts.chargeRatePct, 0, 100);
+  const other = Math.max(0, opts.otherDeductions ?? 0);
+  const custom = opts.pasRate != null && Number.isFinite(opts.pasRate) ? Math.max(0, opts.pasRate) : null;
+
+  return searchGrossForNet(target, (g) => {
+    const contributions = (g * rate) / 100;
+    const nb = g - contributions - other;
+    if (kind === 'beforeTax') return nb;
+    const nt = nb + (csgBase(g) * fixedReintegrationRate()) / 100;
+    const r = custom ?? neutralPasRate(nt);
+    return nb - (Math.max(0, nt) * r) / 100;
+  });
 }

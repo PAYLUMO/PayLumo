@@ -3,18 +3,29 @@ import { Link } from 'react-router-dom';
 import { Calculator, ChevronDown, FileSearch } from 'lucide-react';
 import { Button, Card, SectionTitle, cx } from '@/components/ui';
 import { formatEuro, formatPercent } from '@shared/lib/money';
-import { grossFromNet, grossToNet, type NetKind } from '@shared/calc/grossNet';
+import {
+  grossFromNet,
+  grossFromNetFlat,
+  grossToNet,
+  grossToNetFlat,
+  type CalcResult,
+  type NetKind,
+} from '@shared/calc/grossNet';
 import { PAS_GRID_EFFECTIVE_FROM } from '@shared/data/pasGrid';
 import { PMSS, smicAt } from '@shared/data/params';
 
 type Mode = 'gross' | 'net';
 type Period = 'month' | 'year';
+type CalcMode = 'flat' | 'legal';
 
 const fieldCx =
   'w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm focus:outline focus:outline-2 focus:outline-brand-500';
 
 /** Exemples de la table de correspondance (le SMIC est ajouté en tête). */
 const TABLE_GROSS = [2000, 2200, 2500, 2800, 3000, 3500, 4000, 4500, 5000, 6000, 8000];
+
+/** Taux de charges par défaut à l'ouverture de la page : repère courant, ajustable librement. */
+const DEFAULT_CHARGE_RATE = '22';
 
 // Cadre ou non-cadre : depuis la fusion Agirc-Arrco de 2019, la retraite
 // complémentaire se cotise au même taux pour tous — l'écart légal restant
@@ -25,6 +36,10 @@ const STATUT = 'non-cadre' as const;
 function parseAmount(s: string): number {
   const n = Number(s.replace(/\s/g, '').replace(',', '.'));
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
 }
 
 function Segmented<T extends string>({
@@ -63,6 +78,8 @@ export function CalculatorPage() {
   const [netKind, setNetKind] = useState<NetKind>('beforeTax');
   const [amountStr, setAmountStr] = useState('2500');
   const [period, setPeriod] = useState<Period>('month');
+  const [calcMode, setCalcMode] = useState<CalcMode>('flat');
+  const [chargeRateStr, setChargeRateStr] = useState(DEFAULT_CHARGE_RATE);
   const [otherStr, setOtherStr] = useState('');
   const [pasCustom, setPasCustom] = useState(false);
   const [pasStr, setPasStr] = useState('');
@@ -70,32 +87,42 @@ export function CalculatorPage() {
   const amount = parseAmount(amountStr);
   const monthlyInput = period === 'year' ? amount / 12 : amount;
   const other = parseAmount(otherStr);
+  const chargeRateNum = clamp(Number(chargeRateStr.replace(',', '.')) || 0, 0, 100);
   const pasRate = pasCustom && pasStr.trim() !== '' ? Number(pasStr.replace(',', '.')) : null;
-  const opts = {
-    statut: STATUT,
-    otherDeductions: other,
-    pasRate: pasRate != null && Number.isFinite(pasRate) ? pasRate : null,
-  };
+  const pasRateOpt = pasRate != null && Number.isFinite(pasRate) ? pasRate : null;
+
+  const calc = useMemo(() => {
+    if (calcMode === 'flat') {
+      const opts = { chargeRatePct: chargeRateNum, otherDeductions: other, pasRate: pasRateOpt };
+      return {
+        toNet: (grossMonthly: number): CalcResult => grossToNetFlat({ ...opts, grossMonthly }),
+        fromNet: (target: number, kind: NetKind) => grossFromNetFlat(target, kind, opts),
+      };
+    }
+    const opts = { statut: STATUT, otherDeductions: other, pasRate: pasRateOpt };
+    return {
+      toNet: (grossMonthly: number): CalcResult => grossToNet({ ...opts, grossMonthly }),
+      fromNet: (target: number, kind: NetKind) => grossFromNet(target, kind, opts),
+    };
+  }, [calcMode, chargeRateNum, other, pasRateOpt]);
 
   const grossMonthly = useMemo(
-    () => (mode === 'gross' ? monthlyInput : grossFromNet(monthlyInput, netKind, opts)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, monthlyInput, netKind, other, pasRate],
+    () => (mode === 'gross' ? monthlyInput : calc.fromNet(monthlyInput, netKind)),
+    [mode, monthlyInput, netKind, calc],
   );
   const r = useMemo(
-    () => (grossMonthly != null && grossMonthly > 0 ? grossToNet({ ...opts, grossMonthly }) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grossMonthly, other, pasRate],
+    () => (grossMonthly != null && grossMonthly > 0 ? calc.toNet(grossMonthly) : null),
+    [grossMonthly, calc],
   );
 
   const smicGross = smicAt(new Date().toISOString().slice(0, 10)).mensuel151_67;
   const table = useMemo(
     () =>
       [smicGross, ...TABLE_GROSS].map((g) => {
-        const t = grossToNet({ statut: STATUT, grossMonthly: g });
+        const t = calc.toNet(g);
         return { gross: g, before: t.netBeforeTax, paid: t.netPaid };
       }),
-    [smicGross],
+    [smicGross, calc],
   );
 
   const sliderMin = period === 'year' ? 12000 : 1000;
@@ -181,6 +208,53 @@ export function CalculatorPage() {
           />
         </div>
 
+        <div>
+          <p className="mb-1 text-sm font-medium">Cotisations salariales</p>
+          <Segmented
+            label="Mode de calcul"
+            value={calcMode}
+            onChange={setCalcMode}
+            options={[
+              { value: 'flat', label: 'Taux de charges (%)' },
+              { value: 'legal', label: 'Calcul détaillé' },
+            ]}
+          />
+          {calcMode === 'flat' ? (
+            <div className="mt-2">
+              <div className="relative">
+                <input
+                  inputMode="decimal"
+                  value={chargeRateStr}
+                  onChange={(e) => setChargeRateStr(e.target.value.replace(/[^\d.,]/g, ''))}
+                  aria-label="Taux de charges salariales"
+                  className={cx(fieldCx, 'pr-8')}
+                />
+                <span className="pointer-events-none absolute right-3 top-2 text-muted">%</span>
+              </div>
+              <input
+                type="range"
+                aria-label="Ajuster le taux de charges"
+                min={0}
+                max={90}
+                step={1}
+                value={chargeRateNum}
+                onChange={(e) => setChargeRateStr(e.target.value)}
+                className="mt-2 w-full accent-brand-600"
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                ~22 % pour un non-cadre, ~25 % pour un cadre sont des repères courants — ajustez
+                librement selon votre situation. Pour le détail du barème légal 2026, choisissez
+                « Calcul détaillé ».
+              </p>
+            </div>
+          ) : (
+            <p className="mt-1.5 text-xs text-muted">
+              Détail du barème légal 2026 (retraite, CSG/CRDS…) — identique pour cadres et
+              non-cadres depuis 2019, voir « Comment lire ce calcul ».
+            </p>
+          )}
+        </div>
+
         <details className="group rounded-xl surface-2 p-3">
           <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
             Affiner : mutuelle, prévoyance, taux d’impôt
@@ -249,7 +323,7 @@ export function CalculatorPage() {
             )}
             <Line label="Salaire brut" month={r.gross} />
             <Line
-              label={`− Cotisations salariales légales (${formatPercent((r.contributions / r.gross) * 100)})`}
+              label={`− Cotisations salariales${calcMode === 'legal' ? ' légales' : ''} (${formatPercent((r.contributions / r.gross) * 100)})`}
               month={-r.contributions}
               muted
             />
@@ -262,28 +336,30 @@ export function CalculatorPage() {
             />
             <Line label="Net à payer" month={r.netPaid} strong highlight />
 
-            <details className="group mt-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-muted hover:text-[rgb(var(--text))]">
-                Détail des cotisations légales
-                <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="mt-2 overflow-x-auto">
-                <table className="w-full min-w-[20rem] text-xs">
-                  <tbody className="divide-y divide-[rgb(var(--border))]">
-                    {r.lines.map((l) => (
-                      <tr key={l.code}>
-                        <td className="py-1.5 pr-2">{l.label}</td>
-                        <td className="py-1.5 pr-2 text-right tabular-nums text-muted">{formatPercent(l.rate)}</td>
-                        <td className="py-1.5 text-right tabular-nums">{formatEuro(l.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-2 text-xs text-muted">
-                Net imposable (base du prélèvement à la source) : {formatEuro(r.netTaxable, 0)} par mois.
-              </p>
-            </details>
+            {r.lines.length > 0 && (
+              <details className="group mt-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-muted hover:text-[rgb(var(--text))]">
+                  Détail des cotisations légales
+                  <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[20rem] text-xs">
+                    <tbody className="divide-y divide-[rgb(var(--border))]">
+                      {r.lines.map((l) => (
+                        <tr key={l.code}>
+                          <td className="py-1.5 pr-2">{l.label}</td>
+                          <td className="py-1.5 pr-2 text-right tabular-nums text-muted">{formatPercent(l.rate)}</td>
+                          <td className="py-1.5 text-right tabular-nums">{formatEuro(l.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  Net imposable (base du prélèvement à la source) : {formatEuro(r.netTaxable, 0)} par mois.
+                </p>
+              </details>
+            )}
           </div>
         )}
       </Card>
@@ -304,7 +380,9 @@ export function CalculatorPage() {
       </Card>
 
       <Card>
-        <SectionTitle>Brut → net, repères 2026</SectionTitle>
+        <SectionTitle hint={calcMode === 'flat' ? `taux ${formatPercent(chargeRateNum)}` : 'calcul détaillé'}>
+          Brut → net, repères 2026
+        </SectionTitle>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[19rem] text-sm">
             <thead>
@@ -329,22 +407,32 @@ export function CalculatorPage() {
           </table>
         </div>
         <p className="mt-2 text-xs text-muted">
-          Cotisations légales, hors mutuelle et prévoyance, taux de prélèvement par défaut.
+          {calcMode === 'flat'
+            ? `Taux de charges de ${formatPercent(chargeRateNum)}, hors mutuelle et prévoyance, taux de prélèvement par défaut.`
+            : 'Cotisations légales, hors mutuelle et prévoyance, taux de prélèvement par défaut.'}
         </p>
       </Card>
 
       <Card className="space-y-4 text-sm">
         <SectionTitle>Comment lire ce calcul</SectionTitle>
         <p className="text-muted">
-          Le calcul reprend le barème légal 2026 de PayLumo : retraite de base (6,90 % jusqu’au
-          plafond mensuel de la Sécurité sociale, {formatEuro(PMSS, 0)}, puis 0,40 % sur tout le
-          salaire), retraite complémentaire Agirc-Arrco et contributions d’équilibre, et CSG/CRDS
-          (9,7 % calculés sur 98,25 % du brut). Cadre ou non-cadre, ce calcul légal est identique :
-          depuis la fusion de l’Agirc (l’ancienne caisse de retraite complémentaire réservée aux
-          cadres, à taux plus élevé) avec l’Arrco au 1ᵉʳ janvier 2019, un seul régime s’applique à
-          tous, au même taux. Le repère « ~22 % non-cadre / ~25 % cadre » que vous avez peut-être en
-          tête date d’avant cette fusion ; ce qui différencie un vrai bulletin aujourd’hui, c’est la
-          prévoyance et la mutuelle — des cotisations contractuelles, propres à chaque entreprise.
+          Deux façons de calculer les cotisations salariales. Le <strong className="text-[rgb(var(--text))]">
+          taux de charges</strong> applique directement un pourcentage que vous choisissez au
+          salaire brut — rapide, mais approximatif. Le <strong className="text-[rgb(var(--text))]">
+          calcul détaillé</strong> reprend le barème légal 2026 de PayLumo, ligne par ligne :
+          retraite de base (6,90 % jusqu’au plafond mensuel de la Sécurité sociale,{' '}
+          {formatEuro(PMSS, 0)}, puis 0,40 % sur tout le salaire), retraite complémentaire
+          Agirc-Arrco et contributions d’équilibre, et CSG/CRDS (9,7 % calculés sur 98,25 % du
+          brut).
+        </p>
+        <p className="text-muted">
+          Cadre ou non-cadre, ce calcul détaillé est identique : depuis la fusion de l’Agirc
+          (l’ancienne caisse de retraite complémentaire réservée aux cadres, à taux plus élevé) avec
+          l’Arrco au 1ᵉʳ janvier 2019, un seul régime s’applique à tous, au même taux. Le repère
+          « ~22 % non-cadre / ~25 % cadre » proposé par défaut dans le taux de charges date d’avant
+          cette fusion ; ce qui différencie un vrai bulletin aujourd’hui, c’est surtout la
+          prévoyance et la mutuelle — des cotisations contractuelles, propres à chaque entreprise, à
+          ajouter dans « Affiner ».
         </p>
         <p className="text-muted">
           Le <strong className="text-[rgb(var(--text))]">prélèvement à la source</strong> s’applique
