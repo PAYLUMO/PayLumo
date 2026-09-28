@@ -46,6 +46,31 @@ describe('payslipFromRaw + analyse', () => {
     expect(f!.impactEuro).toBeGreaterThan(5);
   });
 
+  it('CEG tranche 1 et tranche 2 sur le même bulletin : pas de faux TAUX_INCORRECT', () => {
+    // Bug réel remonté par un utilisateur : la ligne « CEG Tranche 2 » (1,08 %, correct)
+    // était rattachée au code CEG_T1 (attendu 0,86 %) à cause d'une regex de taxonomie
+    // mal ancrée qui matchait le simple mot « tranche », quel que soit son numéro.
+    const raw = loadRaw('clarified-sain.raw.json');
+    raw.contributions.push({
+      label: 'CEG tranche 2',
+      section: 'RETRAITE',
+      base: 432.3,
+      employeeRate: 1.08,
+      employeeAmount: 4.67,
+      employerRate: 1.62,
+      employerAmount: 7.0,
+    });
+
+    const p = payslipFromRaw(raw);
+    const t1 = p.contributions.find((c) => c.label === 'CEG tranche 1');
+    const t2 = p.contributions.find((c) => c.label === 'CEG tranche 2');
+    expect(t1?.canonical).toBe('CEG_T1');
+    expect(t2?.canonical).toBe('CEG_T2');
+
+    const result = analyzePayslip(p);
+    expect(result.findings.filter((f) => f.code === 'TAUX_INCORRECT' && f.canonical?.startsWith('CEG'))).toEqual([]);
+  });
+
   it('écarte les lignes de total / sous-total glissées dans contributions[]', () => {
     const raw = loadRaw('clarified-sain.raw.json');
     const nContribs = raw.contributions.length;

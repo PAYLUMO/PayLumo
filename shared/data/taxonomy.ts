@@ -125,7 +125,7 @@ export const TAXONOMY: TaxonomyEntry[] = [
     category: 'RETRAITE',
     label: "Contribution d'équilibre général (T1)",
     section: 'RETRAITE',
-    patterns: [/c\.?e\.?g\.?.*(t1|tranche 1|tr *1|tr *a)/, /equilibre general.*(t1|tranche 1|1)/, /\bceg\b.*1/],
+    patterns: [/c\.?e\.?g\.?.*(t1|tranche 1|tr *1|tr *a)\b/, /equilibre general.*(t1|tranche 1|1)/, /\bceg\b.*1/],
   },
   {
     code: 'CEG_T2',

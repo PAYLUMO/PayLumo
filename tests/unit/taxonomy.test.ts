@@ -16,6 +16,8 @@ describe('matchCanonical', () => {
     ['Complémentaire Tranche 1', 'RETRAITE_COMPLEMENTAIRE_T1'],
     ['Retraite complémentaire tranche 2', 'RETRAITE_COMPLEMENTAIRE_T2'],
     ['CEG tranche 1', 'CEG_T1'],
+    ['CEG tranche 2', 'CEG_T2'],
+    ['CEG Tranche 2', 'CEG_T2'],
     ['CET', 'CET'],
     ['CSG déductible', 'CSG_DEDUCTIBLE'],
     ['CSG/CRDS non déductible', 'CSG_CRDS_NON_DEDUCTIBLE'],
