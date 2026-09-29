@@ -6,6 +6,14 @@ import { Button, Card } from '@/components/ui';
 import { useAnalysisStore } from '@/app/store';
 import { DEMO_ID, runDemo } from '@/features/demo/runDemo';
 
+/** Après un déploiement, un onglet resté ouvert peut garder en mémoire du code
+ * référençant des fichiers qui n'existent plus sur le serveur (assets versionnés
+ * renommés). Le rechargement recharge la dernière version et résout le problème. */
+function isStaleChunkError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /dynamically imported module|Importing a module script failed|Failed to fetch/i.test(msg);
+}
+
 const FEATURES = [
   {
     icon: FileSearch,
@@ -33,14 +41,22 @@ export function HomePage() {
   const navigate = useNavigate();
   const setCurrent = useAnalysisStore((s) => s.setCurrent);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const openDemo = async () => {
     setDemoLoading(true);
+    setDemoError(null);
     try {
       const analysis = await runDemo();
       setCurrent(analysis);
       navigate(`/resultats/${DEMO_ID}`);
-    } catch {
+    } catch (err) {
+      console.error('Échec de la démo :', err);
+      setDemoError(
+        isStaleChunkError(err)
+          ? 'Cet onglet a été ouvert avant une mise à jour de PayLumo. Rechargez la page, puis réessayez.'
+          : 'La démo n’a pas pu se charger. Réessayez dans un instant.',
+      );
       setDemoLoading(false);
     }
   };
@@ -74,6 +90,9 @@ export function HomePage() {
           {demoLoading ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
           Voir un exemple d’analyse (gratuit)
         </button>
+        {demoError && (
+          <p className="mt-2 max-w-xs text-xs text-amber-700 dark:text-amber-400">{demoError}</p>
+        )}
       </section>
 
       <Link
