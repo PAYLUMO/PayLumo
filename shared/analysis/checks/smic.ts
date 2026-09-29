@@ -8,7 +8,7 @@ function smicInputs(ctx: AnalysisContext) {
   const p = ctx.payslip;
   if (!ctx.periodCovered || !ctx.grossConfident) return null;
   const heures = p.time.heuresContrat?.value;
-  const baseItem = p.grossItems.find((g) => g.kind === 'base' || /salaire de base|salaire mensuel|appointements/i.test(g.label));
+  const baseItem = p.grossItems.find((g) => g.kind === 'base' || /salaire de base|salaire mensuel|appointements?/i.test(g.label));
   return { heures, salaireBase: baseItem?.amount.value };
 }
 

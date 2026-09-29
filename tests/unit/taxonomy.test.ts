@@ -27,6 +27,10 @@ describe('matchCanonical', () => {
     ['APEC', 'APEC'],
     ['Accident du travail', 'ACCIDENT_TRAVAIL'],
     ['Sécurité sociale - Maladie Maternité Invalidité Décès', 'MALADIE'],
+    ['ARRCO tranche 1', 'RETRAITE_COMPLEMENTAIRE_T1'],
+    ['ARRCO tranche 2', 'RETRAITE_COMPLEMENTAIRE_T2'],
+    ['ARRCO TB', 'RETRAITE_COMPLEMENTAIRE_T2'],
+    ['Cotisation maladie', 'MALADIE'],
   ];
 
   it.each(cases)('« %s » → %s', (label, code) => {
@@ -37,5 +41,19 @@ describe('matchCanonical', () => {
 
   it('APEC non reconnu pour un non-cadre', () => {
     expect(matchCanonical('APEC', { statut: 'non-cadre' })).toBeUndefined();
+  });
+
+  it('« Prévoyance non cadre » n’est jamais classée PREVOYANCE_CADRE', () => {
+    // Bug réel : le mot « cadre » apparaît dans « non cadre », ce qui faisait
+    // matcher PREVOYANCE_CADRE (et donc comparer au taux 1,50 % réservé aux
+    // cadres) même pour un salarié non-cadre, ou quand le statut n'est pas lu.
+    for (const statut of [undefined, 'cadre', 'non-cadre', 'inconnu'] as const) {
+      expect(matchCanonical('Prévoyance non cadre', { section: 'SANTE', statut })?.code).toBe('PREVOYANCE');
+    }
+  });
+
+  it('« ARRCO » seul reste rattaché à la tranche 1 par défaut', () => {
+    // Comportement existant et volontaire (pas de tranche indiquée) — non-régression.
+    expect(matchCanonical('ARRCO')?.code).toBe('RETRAITE_COMPLEMENTAIRE_T1');
   });
 });

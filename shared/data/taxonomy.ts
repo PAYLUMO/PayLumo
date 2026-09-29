@@ -107,7 +107,7 @@ export const TAXONOMY: TaxonomyEntry[] = [
     patterns: [
       /(retraite )?compl(ementaire)?.*(t1|tranche 1|tr\.? *1|tr *a)\b/,
       /agirc.?arrco.*(t1|tranche 1)/,
-      /\barrco\b(?!.*(t2|tranche 2))/,
+      /\barrco\b(?!.*(t2|tranche 2|\btb\b))/,
     ],
   },
   {
@@ -118,6 +118,7 @@ export const TAXONOMY: TaxonomyEntry[] = [
     patterns: [
       /(retraite )?compl(ementaire)?.*(t2|tranche 2|tr\.? *2|tr *b|tr *c)\b/,
       /agirc.?arrco.*(t2|tranche 2)/,
+      /\barrco\b.*(t2|tranche 2|\btb\b)/,
     ],
   },
   {
@@ -125,14 +126,22 @@ export const TAXONOMY: TaxonomyEntry[] = [
     category: 'RETRAITE',
     label: "Contribution d'équilibre général (T1)",
     section: 'RETRAITE',
-    patterns: [/c\.?e\.?g\.?.*(t1|tranche 1|tr *1|tr *a)\b/, /equilibre general.*(t1|tranche 1|1)/, /\bceg\b.*1/],
+    patterns: [
+      /c\.?e\.?g\.?.*(t1|tranche 1|tr *1|tr *a)\b/,
+      /equilibre general.*(t1|tranche 1|1)\b/,
+      /\bceg\b.*1\b/,
+    ],
   },
   {
     code: 'CEG_T2',
     category: 'RETRAITE',
     label: "Contribution d'équilibre général (T2)",
     section: 'RETRAITE',
-    patterns: [/c\.?e\.?g\.?.*(t2|tranche 2|tr *2|tr *b)/, /equilibre general.*(t2|tranche 2|2)/, /\bceg\b.*2/],
+    patterns: [
+      /c\.?e\.?g\.?.*(t2|tranche 2|tr *2|tr *b)\b/,
+      /equilibre general.*(t2|tranche 2|2)\b/,
+      /\bceg\b.*2\b/,
+    ],
   },
   {
     code: 'CET',
@@ -171,7 +180,10 @@ export const TAXONOMY: TaxonomyEntry[] = [
     label: 'Prévoyance cadres (1,50 % TA)',
     section: 'SANTE',
     onlyStatut: 'cadre',
-    patterns: [/prevoyance.*(cadre|1[.,]50|tranche a|ta\b)/, /1[.,]50 *% *(ta|tranche a)/],
+    patterns: [
+      /prevoyance(?!.*\bnon.?cadre\b).*(cadre|1[.,]50|tranche a|ta\b)/,
+      /1[.,]50 *% *(ta|tranche a)/,
+    ],
   },
   {
     code: 'PREVOYANCE',
@@ -189,7 +201,7 @@ export const TAXONOMY: TaxonomyEntry[] = [
       /maladie.?maternite/,
       /maladie maternite invalidite deces/,
       /(secu(rite)?|s\.?s\.?).*maladie/,
-      /^maladie\b/,
+      /^(cotisation |assurance )?maladie\b/,
       /assurance maladie/,
     ],
   },

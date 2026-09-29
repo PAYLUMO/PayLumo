@@ -28,6 +28,7 @@ CONFIDENTIALITÉ — ne fais JAMAIS figurer dans ta réponse : le nom, le préno
 Règles :
 - Recopie les nombres exactement comme affichés. Rends-les en nombre (point décimal, sans séparateur de milliers) : « 1 823,03 » → 1823.03.
 - Les absences et retenues sont des montants négatifs dans grossItems.
+- grossItems[] ne contient QUE des éléments de rémunération individuels (salaire de base, prime, heures supp, avantage, indemnité, absence). N'y mets JAMAIS une ligne de total ou de récapitulatif (« Total salaire brut », « Salaire brut », « Brut fiscal »…) : c'est le champ gross qui recopie ce montant.
 - Toute valeur absente du bulletin = null. N'invente jamais une valeur, ne reconstitue jamais un montant manquant par le calcul.
 - contributions[] ne contient QUE des cotisations individuelles. N'y mets JAMAIS : les lignes de total ou sous-total (« Total des cotisations et contributions », « Total des retenues »…), les intitulés de rubrique employés seuls (« SANTÉ », « RETRAITE », « Autres contributions dues par l'employeur »…), les lignes de récapitulatif de pied de bulletin (net imposable, net social, net à payer, coût employeur), ni les lignes globales d'exonération / allègement / écrêtement de cotisations.
 - contributions[].section : déduis-la du titre de regroupement sous lequel la ligne figure (SANTÉ→SANTE ; ACCIDENT DU TRAVAIL / AT-MP→ATMP ; RETRAITE→RETRAITE ; FAMILLE→FAMILLE ; ASSURANCE CHÔMAGE→CHOMAGE ; AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR→AUTRES ; CSG/CRDS→CSG_CRDS). null si indéterminable.
