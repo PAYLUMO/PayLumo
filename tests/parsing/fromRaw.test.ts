@@ -119,6 +119,30 @@ describe('payslipFromRaw + analyse', () => {
     expect(p.employerCost?.value).toBeCloseTo(4719.2, 2);
   });
 
+  it('écarte une ligne récap (« Total salaire brut ») glissée dans grossItems[]', () => {
+    // Bug réel remonté par un utilisateur : sur son bulletin, l'IA avait relu à
+    // la fois « Appointement » (ligne détaillée) et « Total salaire brut »
+    // (ligne récap de pied de bulletin) comme deux grossItems distincts. La
+    // somme additionnait donc le récap à la ligne qu'il récapitulait déjà,
+    // ce qui faussait la cohérence du brut (double comptage) → faux BRUT_INCOHERENT.
+    const raw = loadRaw('clarified-sain.raw.json');
+    const nItems = raw.grossItems.length;
+    raw.grossItems.push({
+      label: 'Total salaire brut',
+      kind: 'autre',
+      base: null,
+      rate: null,
+      amount: raw.gross as number,
+    });
+
+    const p = payslipFromRaw(raw);
+    expect(p.grossItems).toHaveLength(nItems);
+    expect(p.grossItems.some((g) => /^total/i.test(g.label))).toBe(false);
+
+    const result = analyzePayslip(p);
+    expect(result.findings.some((f) => f.code === 'BRUT_INCOHERENT')).toBe(false);
+  });
+
   it('ligne de régularisation à base négative : pas de faux CALCUL_INCOHERENT', () => {
     // Sur un vrai bulletin, une ligne de régularisation (tranches Agirc-Arrco
     // recalculées progressivement, correction d'une période antérieure…)

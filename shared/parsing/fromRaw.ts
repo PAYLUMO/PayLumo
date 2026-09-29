@@ -25,7 +25,15 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
   const statut = raw.employee.status as EmployeeStatus;
   const regime = raw.employee.regime as SocialRegime;
 
-  const grossItems: GrossItem[] = raw.grossItems.map((g) => ({
+  // Filet de sécurité : même si le modèle a laissé passer un total (« Total
+  // salaire brut »…) ou un intitulé de rubrique, on l'écarte ici — sinon la
+  // ligne récap est additionnée aux lignes détaillées et fausse la cohérence
+  // du brut (double comptage).
+  const realGrossItems = raw.grossItems.filter(
+    (g) => !isSummaryOrHeaderLabel(g.label, g.rate != null, true),
+  );
+
+  const grossItems: GrossItem[] = realGrossItems.map((g) => ({
     label: g.label,
     kind: g.kind,
     base: g.base != null ? valued(g.base, C) : undefined,
