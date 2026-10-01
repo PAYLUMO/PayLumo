@@ -85,3 +85,15 @@ export function isSummaryOrHeaderLabel(label: string, hasRate = false, hasAmount
 
   return false;
 }
+
+/**
+ * Élément de rémunération explicitement marqué « non soumis » (à cotisations)
+ * par le bulletin lui-même : indemnité de prévoyance, panier non soumis… Ce
+ * sont de vraies lignes de rémunération (on les affiche), mais elles ne font
+ * pas partie de l'assiette comparée au salaire brut affiché — les compter
+ * fausserait la cohérence du brut (cf. bug réel : une indemnité prévoyance et
+ * un panier « non soumis » gonflaient à tort la somme comparée au brut).
+ */
+export function isNonSoumisLabel(label: string): boolean {
+  return /\bn(on)? soumis\w*\b/.test(normLabel(label));
+}

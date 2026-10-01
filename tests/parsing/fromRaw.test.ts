@@ -143,6 +143,26 @@ describe('payslipFromRaw + analyse', () => {
     expect(result.findings.some((f) => f.code === 'BRUT_INCOHERENT')).toBe(false);
   });
 
+  it('les lignes « non soumis » de grossItems[] ne comptent pas dans le brut', () => {
+    // Bug réel remonté par un utilisateur : une indemnité de prévoyance et un
+    // panier, tous deux explicitement marqués « non soumis » sur le bulletin,
+    // étaient additionnés comme de vraies composantes du brut, faussant la
+    // cohérence (écart de 539,26 € signalé à tort comme une anomalie).
+    const raw = loadRaw('clarified-sain.raw.json');
+    raw.grossItems.push(
+      { label: 'IND.PREVOYANCE N. SOUMIS', kind: 'indemnite', base: 26, rate: null, amount: 439.45 },
+      { label: 'PANIER NON SOUMIS', kind: 'autre', base: 8, rate: null, amount: 83.2 },
+    );
+
+    const p = payslipFromRaw(raw);
+    // toujours affichées (ce sont de vraies lignes du bulletin)
+    expect(p.grossItems.some((g) => g.label === 'IND.PREVOYANCE N. SOUMIS')).toBe(true);
+    expect(p.grossItems.some((g) => g.label === 'PANIER NON SOUMIS')).toBe(true);
+
+    const result = analyzePayslip(p);
+    expect(result.findings.some((f) => f.code === 'BRUT_INCOHERENT')).toBe(false);
+  });
+
   it('ligne de régularisation à base négative : pas de faux CALCUL_INCOHERENT', () => {
     // Sur un vrai bulletin, une ligne de régularisation (tranches Agirc-Arrco
     // recalculées progressivement, correction d'une période antérieure…)

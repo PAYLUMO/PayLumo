@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSummaryOrHeaderLabel } from '@shared/parsing/summaryLabels';
+import { isNonSoumisLabel, isSummaryOrHeaderLabel } from '@shared/parsing/summaryLabels';
 
 describe('isSummaryOrHeaderLabel', () => {
   it('écarte les totaux et sous-totaux', () => {
@@ -54,5 +54,25 @@ describe('isSummaryOrHeaderLabel', () => {
     }
     // "Assurance chômage" reste une vraie ligne dès qu'un montant est lu, même sans taux
     expect(isSummaryOrHeaderLabel('Assurance chômage', false, true)).toBe(false);
+  });
+});
+
+describe('isNonSoumisLabel', () => {
+  it('reconnaît les lignes explicitement marquées « non soumis »', () => {
+    for (const l of [
+      'IND.PREVOYANCE N. SOUMIS',
+      'PANIER NON SOUMIS',
+      'Panier non soumis',
+      'Prime non soumise',
+      'Indemnité non-soumis',
+    ]) {
+      expect(isNonSoumisLabel(l)).toBe(true);
+    }
+  });
+
+  it('garde les vraies lignes de rémunération soumises', () => {
+    for (const l of ['Salaire de base', 'Prime d’ancienneté', 'Panier', 'Appointements', 'Avantage nature voiture']) {
+      expect(isNonSoumisLabel(l)).toBe(false);
+    }
   });
 });

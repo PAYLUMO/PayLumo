@@ -1,4 +1,5 @@
 import { approxEqual, formatEuro, roundCents } from '../../lib/money.js';
+import { isNonSoumisLabel } from '../../parsing/summaryLabels.js';
 import type { Finding, PassedCheck } from '../findings.js';
 import type { AnalysisContext } from '../context.js';
 
@@ -9,7 +10,11 @@ const whatToDo =
 function compositionInputs(ctx: AnalysisContext) {
   const { grossItems } = ctx.payslip;
   if (!ctx.grossConfident || grossItems.length === 0) return null;
-  const confident = grossItems.filter((g) => g.amount.confidence >= 0.5);
+  // Les lignes marquées « non soumis » par le bulletin (indemnité prévoyance,
+  // panier non soumis…) sont de vraies lignes de rémunération mais ne font
+  // pas partie de l'assiette du salaire brut : on les affiche ailleurs, on ne
+  // les compte pas ici.
+  const confident = grossItems.filter((g) => g.amount.confidence >= 0.5 && !isNonSoumisLabel(g.label));
   if (confident.length === 0) return null;
   return { confident, sum: roundCents(confident.reduce((s, g) => s + g.amount.value, 0)) };
 }
