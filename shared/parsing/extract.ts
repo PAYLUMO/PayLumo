@@ -11,7 +11,7 @@
 
 import { parseFrNumber, looksNumeric, roundCents } from '../lib/money.js';
 import { matchCanonical, normalizeLabel } from '../data/taxonomy.js';
-import { isSummaryOrHeaderLabel } from './summaryLabels.js';
+import { isForfaitJoursLabel, isSummaryOrHeaderLabel } from './summaryLabels.js';
 import type { Cell, PdfDocumentText, TextLine } from './pdf-core.js';
 import {
   valued,
@@ -319,6 +319,7 @@ export function extractPayslip(doc: PdfDocumentText): Payslip {
     if (!hasAnyNumber || !label) continue;
 
     if (phase === 'remuneration') {
+      if (isForfaitJoursLabel(label)) continue; // nombre de jours, pas un montant
       const amount = nums.amtEmp ?? nums.loose.at(-1) ?? nums.base;
       if (amount == null) continue;
       const kind = grossKind(label);

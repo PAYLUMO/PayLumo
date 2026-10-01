@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isNonSoumisLabel, isSummaryOrHeaderLabel } from '@shared/parsing/summaryLabels';
+import { isForfaitJoursLabel, isNonSoumisLabel, isSummaryOrHeaderLabel } from '@shared/parsing/summaryLabels';
 
 describe('isSummaryOrHeaderLabel', () => {
   it('écarte les totaux et sous-totaux', () => {
@@ -73,6 +73,25 @@ describe('isNonSoumisLabel', () => {
   it('garde les vraies lignes de rémunération soumises', () => {
     for (const l of ['Salaire de base', 'Prime d’ancienneté', 'Panier', 'Appointements', 'Avantage nature voiture']) {
       expect(isNonSoumisLabel(l)).toBe(false);
+    }
+  });
+});
+
+describe('isForfaitJoursLabel', () => {
+  it('reconnaît le repère « forfait jours » (nombre de jours, pas un montant)', () => {
+    for (const l of ['FORFAIT JOURS', 'Forfait jours', 'Forfait jour', 'Forfait-jours']) {
+      expect(isForfaitJoursLabel(l)).toBe(true);
+    }
+  });
+
+  it('garde les vraies lignes de rémunération, y compris d’autres « forfait »', () => {
+    for (const l of [
+      'Salaire mensuel de base',
+      'Appointements',
+      'Forfait social', // cotisation employeur, rien à voir
+      'Forfait mobilités durables', // avantage réel, en euros
+    ]) {
+      expect(isForfaitJoursLabel(l)).toBe(false);
     }
   });
 });

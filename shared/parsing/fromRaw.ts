@@ -8,7 +8,7 @@
 
 import { matchCanonical } from '../data/taxonomy.js';
 import type { RawExtraction } from '../extraction.js';
-import { isSummaryOrHeaderLabel } from './summaryLabels.js';
+import { isForfaitJoursLabel, isSummaryOrHeaderLabel } from './summaryLabels.js';
 import {
   valued,
   type ContribCategory,
@@ -26,11 +26,12 @@ export function payslipFromRaw(raw: RawExtraction): Payslip {
   const regime = raw.employee.regime as SocialRegime;
 
   // Filet de sécurité : même si le modèle a laissé passer un total (« Total
-  // salaire brut »…) ou un intitulé de rubrique, on l'écarte ici — sinon la
-  // ligne récap est additionnée aux lignes détaillées et fausse la cohérence
-  // du brut (double comptage).
+  // salaire brut »…), un intitulé de rubrique, ou un repère contractuel non
+  // monétaire (« Forfait jours » — un nombre de jours, pas un montant), on
+  // l'écarte ici — sinon il est additionné aux lignes détaillées et fausse
+  // la cohérence du brut (double comptage, ou un faux montant en euros).
   const realGrossItems = raw.grossItems.filter(
-    (g) => !isSummaryOrHeaderLabel(g.label, g.rate != null, true),
+    (g) => !isSummaryOrHeaderLabel(g.label, g.rate != null, true) && !isForfaitJoursLabel(g.label),
   );
 
   const grossItems: GrossItem[] = realGrossItems.map((g) => ({

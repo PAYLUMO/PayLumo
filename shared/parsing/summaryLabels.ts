@@ -97,3 +97,16 @@ export function isSummaryOrHeaderLabel(label: string, hasRate = false, hasAmount
 export function isNonSoumisLabel(label: string): boolean {
   return /\bn(on)? soumis\w*\b/.test(normLabel(label));
 }
+
+/**
+ * « Forfait jours » : le nombre de jours de la convention de forfait annuel
+ * en jours (régime des cadres autonomes, typiquement 215 à 218 j/an), pas un
+ * montant en euros. Il apparaît souvent dans un encart de repères contractuels
+ * (à côté du salaire mensuel de base), formaté exactement comme un montant
+ * (« 217,00 ») — un vrai bulletin a fait lire cette ligne comme une
+ * composante du brut, faussant sa cohérence. Jamais une ligne de
+ * rémunération : à exclure de grossItems, pas seulement de son total.
+ */
+export function isForfaitJoursLabel(label: string): boolean {
+  return /\bforfait jours?\b/.test(normLabel(label));
+}

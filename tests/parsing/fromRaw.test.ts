@@ -163,6 +163,26 @@ describe('payslipFromRaw + analyse', () => {
     expect(result.findings.some((f) => f.code === 'BRUT_INCOHERENT')).toBe(false);
   });
 
+  it('écarte « Forfait jours » de grossItems[] : ce n’est pas un montant', () => {
+    // Bug réel remonté par un utilisateur (cadre au forfait jours) : le repère
+    // contractuel « FORFAIT JOURS 217,00 » (217 jours/an, pas 217 €) figurait
+    // dans un encart à côté du salaire de base, formaté comme un montant — et
+    // a été lu comme une composante du brut, faussant à la fois l'affichage
+    // (« 217,00 € » n'existe pas) et la cohérence du brut.
+    const raw = loadRaw('clarified-sain.raw.json');
+    const nItems = raw.grossItems.length;
+    raw.grossItems.push({ label: 'FORFAIT JOURS', kind: 'autre', base: null, rate: null, amount: 217 });
+
+    const p = payslipFromRaw(raw);
+    // contrairement à « non soumis », ce n'est pas une vraie ligne de
+    // rémunération : elle ne doit même pas être affichée.
+    expect(p.grossItems).toHaveLength(nItems);
+    expect(p.grossItems.some((g) => /forfait jours?/i.test(g.label))).toBe(false);
+
+    const result = analyzePayslip(p);
+    expect(result.findings.some((f) => f.code === 'BRUT_INCOHERENT')).toBe(false);
+  });
+
   it('ligne de régularisation à base négative : pas de faux CALCUL_INCOHERENT', () => {
     // Sur un vrai bulletin, une ligne de régularisation (tranches Agirc-Arrco
     // recalculées progressivement, correction d'une période antérieure…)
